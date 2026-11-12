@@ -1,0 +1,130 @@
+{
+ "summary": {
+  "title": "SMR: Sparse Mixture Routing for Efficient Long-Context Transformers",
+  "date": "2026-11-11",
+  "relation": "两份意见的主判断一致：结论比证据宽。分歧集中在延迟对比要不要重测，以及“首个”该删还是该加限定。",
+  "verdicts": {
+   "A": "Borderline。修完三条 P0 能到 Weak Accept。",
+   "B": "Weak Reject。核心组件没有被单独消融，摘要的数字对不上。"
+  },
+  "top_fixes": [
+   "把“全面领先”收窄到实测的两个基准（X01）",
+   "消融补“只去掉路由”这一行（X02）",
+   "摘要的 3.1× 改成表 4 能算出来的数，或补测量条件（X03）"
+  ],
+  "counts": {"共识": 3, "部分共识": 1, "分歧": 2, "仅 A 提出": 1, "仅 B 提出": 1},
+  "removed_typos": "删掉 B 的 T04：原文是 “data are”，data 作复数是对的，不算错。"
+ },
+ "merged": [
+  {
+   "id": "X01", "category": "共识", "priority": "P0", "effort": "小",
+   "title": "摘要的“全面领先”说过头",
+   "sources": "A:R01, B:R02",
+   "location": "摘要第 4 句；第 1 节；第 6 节", "page": 1,
+   "quote": "SMR consistently outperforms all prior methods across long-context benchmarks.",
+   "says": {"A": "表 2 只有两个基准，建议把范围收窄到 LRA 和 SCROLLS。", "B": "同样的问题，另外指出 “all prior methods” 也说过头，表 2 只比了五个基线。"},
+   "disagreement": "", "how_to_decide": "",
+   "approach": "两位说的是同一处。按 B 的更完整：范围和比较对象都收窄。摘要、贡献列表、结论三处一起改。",
+   "fixes": [{"where": "摘要第 4 句", "before": "consistently outperforms all prior methods across long-context benchmarks", "after": "outperforms the five baselines in Table 2 on both LRA and SCROLLS"}],
+   "needs_author": ""
+  },
+  {
+   "id": "X02", "category": "共识", "priority": "P0", "effort": "大",
+   "title": "消融缺“只去掉路由”这一行",
+   "sources": "A:R02, B:R05",
+   "location": "第 4.3 节，表 3", "page": 7,
+   "quote": "each component contributes to the final gains",
+   "says": {"A": "表 3 没有单独去掉路由的一行，证明不了路由有用。", "B": "同上，并认为这是拒稿级的问题。"},
+   "disagreement": "", "how_to_decide": "",
+   "approach": "补这一行实验。来不及就收窄这句话，并在局限性里写明。",
+   "fixes": [{"where": "第 4.3 节第 2 段（来不及补实验时）", "before": "each component contributes to the final gains", "after": "removing sparse attention or both components degrades performance; we leave isolating the routing module to future work"}],
+   "needs_author": "表 3 新增一行：保留稀疏注意力、去掉路由。"
+  },
+  {
+   "id": "X03", "category": "共识", "priority": "P0", "effort": "中",
+   "title": "摘要的 3.1× 和表 4 对不上",
+   "sources": "A:R03, B:R01",
+   "location": "摘要第 5 句", "page": 1,
+   "quote": "while reducing computation by 3.1×",
+   "says": {"A": "按表 4 的 FLOPs 算是 2.4×。", "B": "正文里找不到 3.1× 的出处。"},
+   "disagreement": "", "how_to_decide": "",
+   "approach": "先确认 3.1× 的测量条件；确认不了就改成 2.4×。",
+   "fixes": [{"where": "摘要第 5 句", "before": "reducing computation by 3.1×", "after": "reducing FLOPs by 2.4× at 8k tokens (Table 4)"}],
+   "needs_author": "3.1× 的测量条件。"
+  },
+  {
+   "id": "X04", "category": "部分共识", "priority": "P1", "effort": "中",
+   "title": "表 2 没有标准差",
+   "sources": "A:R05, B:R04",
+   "location": "表 2", "page": 6,
+   "quote": "SMR 41.7 vs. 41.4",
+   "says": {"A": "0.3 分的差距可能是噪声，建议补三个种子。", "B": "要求五个种子加显著性检验。"},
+   "disagreement": "", "how_to_decide": "",
+   "approach": "问题两位都认，要求的力度不同。三个种子加标准差就能回答“是不是噪声”，五个种子是加分项。",
+   "fixes": [],
+   "needs_author": "表 2 每个方法至少三个随机种子的结果。"
+  },
+  {
+   "id": "X05", "category": "分歧", "priority": "P1", "effort": "中",
+   "title": "A 认为延迟要在同一张卡上重测，B 认为附录已经说明",
+   "sources": "A:R04, B:R09",
+   "location": "表 5 表注；附录 B.2", "page": 8,
+   "quote": "Baseline latencies are taken from the original papers.",
+   "says": {"A": "基线是 V100，SMR 是 A100，1.8 倍的加速不可比，要重测。", "B": "附录 B.2 已经写了硬件，不算问题，最多在表注里提一句。"},
+   "disagreement": "附录写明了硬件，算不算已经处理：A 认为正文的 1.8 倍仍然会误导，B 认为披露了就够。",
+   "how_to_decide": "看第 4.4 节正文有没有直接用 “1.8× faster” 下结论。有的话 A 对：披露在附录，结论在正文，读者看不到条件。",
+   "approach": "我核对后倾向 A：第 4.4 节第 1 句确实写了 1.8× faster。按 A 改是重测五个基线；按 B 改是只在表注加一句，同时把正文的倍数删掉。",
+   "fixes": [{"where": "表 5 表注（按 B 的最小改法）", "before": "Baseline latencies are taken from the original papers.", "after": "Baseline latencies are taken from the original papers (measured on V100); SMR is measured on A100, so the numbers are not directly comparable."}],
+   "needs_author": "如果按 A：五个基线在 A100 上的延迟。"
+  },
+  {
+   "id": "X06", "category": "分歧", "priority": "P1", "effort": "小",
+   "title": "“首个”的说法：A 说加限定，B 说删掉",
+   "sources": "A:R07, B:R08",
+   "location": "第 1 节贡献列表第 1 条", "page": 2,
+   "quote": "the first to introduce learned routing into attention",
+   "says": {"A": "加上粒度的限定就成立。", "B": "RouteFormer 已经做了，应该删掉“首个”。"},
+   "disagreement": "RouteFormer 做的路由和 SMR 是不是同一件事。",
+   "how_to_decide": "看第 2 节对 RouteFormer 的描述：它写的是 routes tokens between heads，粒度确实不同。",
+   "approach": "倾向 A：加限定就够，依据是论文第 2 节自己的描述。按 B 改是直接删掉 the first to。",
+   "fixes": [{"where": "第 1 节贡献列表第 1 条", "before": "the first to introduce learned routing into attention", "after": "the first to route tokens to a sparse mixture of attention experts, as opposed to routing between heads"}],
+   "needs_author": ""
+  },
+  {
+   "id": "X07", "category": "仅 A 提出", "priority": "P2", "effort": "小",
+   "title": "routing gate 和 selector 混用",
+   "sources": "A:R08",
+   "location": "第 3.1 节；第 4.1 节；图 2", "page": 4,
+   "quote": "The routing gate g(x) assigns each token to k experts.",
+   "says": {"A": "同一个模块两个名字。", "B": "没提"},
+   "disagreement": "", "how_to_decide": "",
+   "approach": "核对后成立，全文统一成 routing gate。",
+   "fixes": [{"where": "第 4.1 节、图 2 图注", "before": "the selector", "after": "the routing gate"}],
+   "needs_author": ""
+  },
+  {
+   "id": "X08", "category": "仅 B 提出", "priority": "P1", "effort": "中",
+   "title": "没有报告训练成本",
+   "sources": "B:R06",
+   "location": "第 4.1 节", "page": 6,
+   "quote": "All models are trained for 100k steps.",
+   "says": {"A": "没提", "B": "只说了步数，没说 GPU 小时，无法判断路由带来的训练开销。"},
+   "disagreement": "", "how_to_decide": "",
+   "approach": "核对后成立：全文没有训练时间。在第 4.1 节加一句，或在表 4 加一列。",
+   "fixes": [],
+   "needs_author": "各方法的训练时间（GPU 小时）。"
+  }
+ ],
+ "claims": [
+  {"id": "C01", "claim": "SMR consistently outperforms all prior methods across long-context benchmarks.", "location": "摘要", "page": 1, "verdicts": {"A": "说过头", "B": "说过头"}, "verdict": "说过头", "note": "判断一致。", "issue_id": "X01"},
+  {"id": "C02", "claim": "while reducing computation by 3.1×", "location": "摘要", "page": 1, "verdicts": {"A": "对不上", "B": "无证据"}, "verdict": "对不上", "note": "表 4 能算出 2.4×，所以是对不上，不是无证据。", "issue_id": "X03"},
+  {"id": "C03", "claim": "Memory grows linearly with sequence length.", "location": "第 3.3 节", "page": 5, "verdicts": {"A": "撑得住", "B": "说过头"}, "verdict": "撑得住", "note": "图 3 在 1k–16k 内近似线性，原文也限定了这个范围。", "issue_id": ""},
+  {"id": "C04", "claim": "The routing gate adds less than 2% parameters.", "location": "第 3.2 节", "page": 5, "verdicts": {"A": "撑得住", "B": "撑得住"}, "verdict": "撑得住", "note": "判断一致。", "issue_id": ""}
+ ],
+ "typos": [
+  {"id": "T01", "location": "摘要第 2 句", "page": 1, "quote": "a efficient routing mechanism", "fix": "an efficient routing mechanism", "type": "语法", "from": "AB"},
+  {"id": "T02", "location": "第 1 节第 2 段", "page": 1, "quote": "the the attention cost", "fix": "the attention cost", "type": "拼写", "from": "A"},
+  {"id": "T03", "location": "第 3.1 节第 3 段", "page": 4, "quote": "as shown in Figure ??", "fix": "as shown in Figure 2", "type": "LaTeX", "from": "AB"},
+  {"id": "T04", "location": "第 4.1 节第 1 段", "page": 6, "quote": "long range arena", "fix": "Long Range Arena", "type": "大小写", "from": "B"}
+ ]
+}

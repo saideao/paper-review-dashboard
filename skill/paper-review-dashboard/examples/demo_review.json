@@ -1,0 +1,172 @@
+{
+ "summary": {
+  "title": "SMR: Sparse Mixture Routing for Efficient Long-Context Transformers",
+  "venue": "ICLR 2027",
+  "date": "2026-11-11",
+  "verdict": "现在是 Borderline：想法清楚，但两处核心结论的证据不够。修完 P0 的三条，能到 Weak Accept。",
+  "scores": [
+   {"dim": "原创性", "score": 3.5, "reason": "把稀疏路由用到长上下文是新组合，但和 RouteFormer 的区别没讲透。"},
+   {"dim": "严谨性", "score": 2.5, "reason": "摘要的结论比实验覆盖的范围宽（R01），3.1 倍这个数字在正文里找不到（R03）。"},
+   {"dim": "实验", "score": 3, "reason": "只有两个基准，没有标准差；消融缺最关键的一行（R02）。"},
+   {"dim": "写作", "score": 4, "reason": "结构清楚，图表规范；有 6 处文字小错。"}
+  ],
+  "must_fix": [
+   "把“全面领先”收窄到实测的两个基准，摘要和结论口径一致（R01、R06）",
+   "消融补上“只去掉路由”这一行，否则证明不了路由有用（R02）",
+   "计算量降低 3.1 倍：正文要给出算法，或者改成表 4 里能算出来的数（R03）",
+   "延迟要在同一张显卡上重测，或者在表注里写明硬件不同（R04）"
+  ],
+  "passes": [
+   {"name": "声明和证据", "result": "列出 7 条声明：撑得住 3、说过头 2、对不上 1、无证据 1。"},
+   {"name": "方法和实验", "result": "发现 3 处：消融不完整（R02）、延迟对比的硬件不一致（R04）、没有标准差（R05）。"},
+   {"name": "相关工作和引用", "result": "发现 1 处：“首个”的说法没有和 RouteFormer 对比（R07）。"},
+   {"name": "写作和结构", "result": "发现 1 处：routing gate 和 selector 混用（R08）。引言结构已查，未发现问题。"},
+   {"name": "文字小错", "result": "共 6 处。摘要 1、第 1 节 1、第 3 节 2、第 4 节 1、参考文献 1；第 2 节、第 5 节、附录各 0 处。"},
+   {"name": "格式和合规", "result": "已查，未发现：正文 9 页，模板正确，没有暴露身份的自引或链接。"}
+  ]
+ },
+ "issues": [
+  {
+   "id": "R01", "group": "声明与证据", "priority": "P0", "effort": "小",
+   "title": "摘要说“全面领先”，表 2 只测了两个数据集",
+   "attack": "作者声称在所有长上下文基准上都领先，但我在表 2 里只看到 LRA 和 SCROLLS。这个结论没有被实验支持。",
+   "location": "摘要第 4 句；同样的说法还出现在第 1 节贡献列表第 3 条、第 6 节第 1 段",
+   "page": 1,
+   "quote": "SMR consistently outperforms all prior methods across long-context benchmarks.",
+   "why": "表 2 只有两个基准。“all prior methods”和“across long-context benchmarks”都比证据宽：没测的基准不能说领先，没比的方法也不能说超过。",
+   "approach": "方向是收窄声明，不是补实验。把范围写成实测的两个基准，把“all prior methods”改成表 2 里实际比过的基线。要动三处：摘要、贡献列表、结论，口径要一致。另一条路是补第三个基准，代价是至少一周的算力。",
+   "fixes": [
+    {"where": "摘要第 4 句", "before": "consistently outperforms all prior methods across long-context benchmarks", "after": "outperforms the five baselines in Table 2 on both LRA and SCROLLS"},
+    {"where": "第 6 节第 1 段", "before": "achieves state-of-the-art results across the board", "after": "achieves the best results among the compared methods on LRA and SCROLLS"}
+   ],
+   "needs_author": ""
+  },
+  {
+   "id": "R03", "group": "声明与证据", "priority": "P0", "effort": "中",
+   "title": "“计算量降低 3.1 倍”在正文和表格里都找不到",
+   "attack": "3.1× 这个数字只出现在摘要里。表 4 给的是 FLOPs，我自己算出来是 2.4×。",
+   "location": "摘要第 5 句",
+   "page": 1,
+   "quote": "while reducing computation by 3.1×",
+   "why": "摘要里最显眼的数字没有出处。按表 4 的 FLOPs 算（18.2G 对 7.6G）是 2.4 倍，和 3.1 倍对不上，审稿人会怀疑数字的来源。",
+   "approach": "先弄清 3.1 倍是怎么来的。如果是在另一个序列长度下测的，就在正文写明条件；如果是笔误，就改成表 4 能算出来的 2.4 倍。两种改法都只动摘要一句，但前一种需要作者补一行数据。",
+   "fixes": [
+    {"where": "摘要第 5 句（按表 4 改）", "before": "reducing computation by 3.1×", "after": "reducing FLOPs by 2.4× at 8k tokens (Table 4)"}
+   ],
+   "needs_author": "3.1× 的测量条件（序列长度、批大小）。如果确实测过，请在表 4 里加一行。"
+  },
+  {
+   "id": "R06", "group": "声明与证据", "priority": "P1", "effort": "小",
+   "title": "结论段又重复了“全面领先”",
+   "attack": "结论比摘要说得还满。",
+   "location": "第 6 节第 1 段",
+   "page": 9,
+   "quote": "SMR achieves state-of-the-art results across the board.",
+   "why": "和 R01 是同一个问题在结论里的重复，单独列出来是因为它需要一起改，否则摘要收窄了、结论还是满的。",
+   "approach": "和 R01 一起改，用同一句范围限定。",
+   "fixes": [
+    {"where": "第 6 节第 1 段", "before": "across the board", "after": "on LRA and SCROLLS"}
+   ],
+   "needs_author": ""
+  },
+  {
+   "id": "R02", "group": "实验", "priority": "P0", "effort": "大",
+   "title": "消融缺“只去掉路由”这一行",
+   "attack": "路由是这篇论文的核心贡献，但表 3 里没有任何一行是只去掉路由的。我无法判断提升来自路由，还是来自一起加进去的稀疏注意力。",
+   "location": "第 4.3 节第 2 段，表 3",
+   "page": 7,
+   "quote": "each component contributes to the final gains",
+   "why": "表 3 的三行分别去掉了稀疏注意力、去掉了两者、换了初始化，没有“保留稀疏注意力、只去掉路由”。这句话对路由这个组件没有证据。",
+   "approach": "最直接的是补这一行实验。来不及的话，把这句话收窄成表 3 实际能支持的说法，并在局限性里写明没有单独消融路由。前者要一次训练，后者只改两句但会削弱贡献。",
+   "fixes": [
+    {"where": "第 4.3 节第 2 段（来不及补实验时）", "before": "each component contributes to the final gains", "after": "removing sparse attention or both components degrades performance; we leave isolating the routing module to future work"}
+   ],
+   "needs_author": "表 3 新增一行：保留稀疏注意力、去掉路由，在 LRA 上的结果。"
+  },
+  {
+   "id": "R04", "group": "实验", "priority": "P1", "effort": "中",
+   "title": "延迟对比用了两种显卡",
+   "attack": "基线的延迟引自原论文（V100），SMR 是在 A100 上测的。这个对比不公平。",
+   "location": "表 5 表注；附录 B.2",
+   "page": 8,
+   "quote": "Baseline latencies are taken from the original papers.",
+   "why": "附录 B.2 写明 SMR 在 A100 上测。不同硬件上的延迟不能直接比，表 5 里 1.8 倍的加速可能大部分来自显卡。",
+   "approach": "在同一张卡上重测基线是最干净的。如果做不到，就在表注里写明硬件不同，并把正文里“1.8× faster”改成不带倍数的说法。",
+   "fixes": [
+    {"where": "表 5 表注", "before": "Baseline latencies are taken from the original papers.", "after": "Baseline latencies are taken from the original papers (measured on V100); SMR is measured on A100, so the numbers are not directly comparable."}
+   ],
+   "needs_author": "如果重测：五个基线在 A100 上的延迟。"
+  },
+  {
+   "id": "R05", "group": "实验", "priority": "P1", "effort": "中",
+   "title": "表 2 没有标准差，领先幅度只有 0.3",
+   "attack": "在 SCROLLS 上只领先 0.3 分，没有多次运行，我不确定这是不是噪声。",
+   "location": "表 2",
+   "page": 6,
+   "quote": "SMR 41.7 vs. 41.4",
+   "why": "0.3 分的差距在这类基准上常常落在随机种子的波动范围内。没有标准差就无法判断。",
+   "approach": "补三个种子，报均值和标准差。如果差距不显著，把 SCROLLS 上的说法从“超过”改成“持平”。",
+   "fixes": [],
+   "needs_author": "表 2 每个方法三个随机种子的结果。"
+  },
+  {
+   "id": "R07", "group": "相关工作与引用", "priority": "P1", "effort": "小",
+   "title": "“首个”的说法没有和 RouteFormer 区分",
+   "attack": "RouteFormer 也在注意力里做了路由，作者引用了它，却仍然说自己是第一个。",
+   "location": "第 1 节贡献列表第 1 条",
+   "page": 2,
+   "quote": "the first to introduce learned routing into attention",
+   "why": "第 2 节引用了 RouteFormer，并写了它“routes tokens between heads”。两者的区别在于路由的粒度，但贡献列表没有写这个限定。",
+   "approach": "不用删“首个”，加上限定就够：是第一个在 token 到混合专家这一层做路由的。依据是第 2 节自己对 RouteFormer 的描述。",
+   "fixes": [
+    {"where": "第 1 节贡献列表第 1 条", "before": "the first to introduce learned routing into attention", "after": "the first to route tokens to a sparse mixture of attention experts, as opposed to routing between heads"}
+   ],
+   "needs_author": ""
+  },
+  {
+   "id": "R08", "group": "术语与符号", "priority": "P2", "effort": "小",
+   "title": "routing gate 和 selector 指的是同一个东西",
+   "attack": "第 3 节叫 routing gate，第 4 节和图 2 叫 selector，我一开始以为是两个模块。",
+   "location": "第 3.1 节第 1 段；第 4.1 节；图 2 图注",
+   "page": 4,
+   "quote": "The routing gate g(x) assigns each token to k experts.",
+   "why": "同一个模块两个名字，读者要自己对应。",
+   "approach": "全文统一成 routing gate，图 2 一起改。",
+   "fixes": [
+    {"where": "第 4.1 节、图 2 图注（共 4 处）", "before": "the selector", "after": "the routing gate"}
+   ],
+   "needs_author": ""
+  },
+  {
+   "id": "R09", "group": "口味项", "priority": "P2", "effort": "小",
+   "title": "引言里 novel 用了 5 次",
+   "attack": "不影响判断，但读起来像在自夸。",
+   "location": "第 1 节",
+   "page": 1,
+   "quote": "we propose a novel routing mechanism",
+   "why": "口味问题。贡献列表已经说明了新在哪里，形容词可以省。",
+   "approach": "保留第一次，其余删掉。",
+   "fixes": [
+    {"where": "第 1 节第 3 段", "before": "a novel routing mechanism", "after": "a routing mechanism"}
+   ],
+   "needs_author": ""
+  }
+ ],
+ "claims": [
+  {"id": "C01", "claim": "SMR consistently outperforms all prior methods across long-context benchmarks.", "location": "摘要；第 1 节；第 6 节", "page": 1, "evidence": "表 2（LRA、SCROLLS）", "verdict": "说过头", "note": "只测了两个基准、五个基线。", "issue_id": "R01"},
+  {"id": "C02", "claim": "while reducing computation by 3.1×", "location": "摘要", "page": 1, "evidence": "表 4 的 FLOPs 算出来是 2.4×", "verdict": "对不上", "note": "摘要的数字和表格不一致。", "issue_id": "R03"},
+  {"id": "C03", "claim": "each component contributes to the final gains", "location": "第 4.3 节", "page": 7, "evidence": "表 3", "verdict": "说过头", "note": "表 3 没有单独去掉路由的一行。", "issue_id": "R02"},
+  {"id": "C04", "claim": "SMR generalizes to unseen sequence lengths", "location": "第 5 节第 2 段", "page": 8, "evidence": "无", "verdict": "无证据", "note": "正文没有对应的实验；建议删掉或补图。", "issue_id": "R01"},
+  {"id": "C05", "claim": "SMR improves accuracy on LRA by 1.9 points over the strongest baseline.", "location": "第 4.2 节", "page": 6, "evidence": "表 2 第 1 列", "verdict": "撑得住", "note": "63.1 对 61.2，算出来是 1.9。", "issue_id": ""},
+  {"id": "C06", "claim": "The routing gate adds less than 2% parameters.", "location": "第 3.2 节", "page": 5, "evidence": "表 1", "verdict": "撑得住", "note": "1.7%。", "issue_id": ""},
+  {"id": "C07", "claim": "Memory grows linearly with sequence length.", "location": "第 3.3 节", "page": 5, "evidence": "图 3", "verdict": "撑得住", "note": "图 3 在 1k–16k 范围内近似线性。", "issue_id": ""}
+ ],
+ "typos": [
+  {"id": "T01", "location": "摘要第 2 句", "page": 1, "quote": "a efficient routing mechanism", "fix": "an efficient routing mechanism", "type": "语法"},
+  {"id": "T02", "location": "第 1 节第 2 段", "page": 1, "quote": "the the attention cost", "fix": "the attention cost", "type": "拼写"},
+  {"id": "T03", "location": "第 3.1 节第 3 段", "page": 4, "quote": "as shown in Figure ??", "fix": "as shown in Figure 2", "type": "LaTeX"},
+  {"id": "T04", "location": "第 3.2 节公式 (4) 下方", "page": 5, "quote": "where k denote the number of experts", "fix": "where k denotes the number of experts", "type": "语法"},
+  {"id": "T05", "location": "第 4.1 节第 1 段", "page": 6, "quote": "long range arena", "fix": "Long Range Arena", "type": "大小写"},
+  {"id": "T06", "location": "参考文献 [17]", "page": 11, "quote": "In ICLR, 2023", "fix": "In International Conference on Learning Representations (ICLR), 2023", "type": "引用格式"}
+ ]
+}
