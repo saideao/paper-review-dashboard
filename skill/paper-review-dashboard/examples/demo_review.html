@@ -676,7 +676,7 @@ var $ = function(s, r){ return (r || document).querySelector(s); };
 var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 function read(id){ var e = document.getElementById(id); if(!e) return null; try{ return JSON.parse(e.textContent); }catch(x){ return null; } }
 var D = { summary: read("summary") || {}, issues: read("issues") || [], merged: read("merged") || [], claims: read("claims") || [], typos: read("typos") || [] };
-var CROSS, ITEMS, KEY, S;
+var CROSS, IMPORT, ITEMS, KEY, S;   /* IMPORT：导入已有的审稿意见（summary.mode === "import"），卡片上多"原话"和"核对结果" */
 
 /* ---------- 小工具 ---------- */
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
@@ -757,22 +757,24 @@ function groups(){
 /* ---------- 渲染：顶部 ---------- */
 function hero(){
   var s = D.summary, h = '<section id="sec-summary" style="margin-top:0"><div class="hero"><div class="hero-top">';
-  h += '<div class="eyebrow">' + (CROSS ? "<span><b>交叉汇总</b></span>" : "<span><b>审稿清单</b></span>") +
-       (s.venue ? "<span>目标会议 · <b>" + esc(s.venue) + "</b></span>" : "") + (s.date ? "<span>" + (CROSS ? "汇总" : "审稿") + "日期 · <b>" + esc(s.date) + "</b></span>" : "") +
-       (CROSS ? "<span>审稿人 · <b>" + reviewers().join("、") + "</b></span>" : "") + "</div>";
+  h += '<div class="eyebrow">' + (CROSS ? "<span><b>交叉汇总</b></span>" : IMPORT ? "<span><b>导入的审稿意见</b></span>" : "<span><b>审稿清单</b></span>") +
+       (s.venue ? "<span>目标会议 · <b>" + esc(s.venue) + "</b></span>" : "") + (s.date ? "<span>" + (CROSS ? "汇总" : IMPORT ? "导入" : "审稿") + "日期 · <b>" + esc(s.date) + "</b></span>" : "") +
+       (CROSS ? "<span>审稿人 · <b>" + reviewers().join("、") + "</b></span>" : "") +
+       (IMPORT && (s.sources || []).length ? "<span>来源 · <b>" + s.sources.map(esc).join("、") + "</b></span>" : "") + "</div>";
   h += '<div class="paper-title">' + esc(s.title || "（没写题目）") + "</div>";
-  h += '<div class="verdict-k">' + (CROSS ? "几份意见的关系" : "总判断") + "</div>";
+  h += '<div class="verdict-k">' + (CROSS ? "几份意见的关系" : IMPORT ? "这些意见合起来说了什么" : "总判断") + "</div>";
   h += '<p class="verdict">' + rich(CROSS ? s.relation : s.verdict) + "</p></div>";
   if(CROSS){
     var vs = s.verdicts || {}, ks = Object.keys(vs);
     if(ks.length){ h += '<div class="reviewers">' + ks.map(function(k){ return '<div><div class="h-k"><span class="rv">' + esc(k) + "</span>审稿人 " + esc(k) + " 的总判断</div>" + rich(vs[k]) + "</div>"; }).join("") + "</div>"; }
     h += '<div class="hero-grid" style="grid-template-columns:1fr"><div><p class="h-k">优先改这几件事 · 只从共识里选</p>' + must(s.top_fixes) + "</div></div>";
   } else {
-    h += '<div class="hero-grid"><div><p class="h-k">维度打分 · 满分 5</p>' + (s.scores || []).map(function(x){
+    var hasScores = (s.scores || []).length > 0;   /* 导入的意见一般没有维度打分，这时右边那栏占满 */
+    h += '<div class="hero-grid"' + (hasScores ? "" : ' style="grid-template-columns:1fr"') + ">" + (hasScores ? '<div><p class="h-k">维度打分 · 满分 5</p>' : "") + (s.scores || []).map(function(x){
       var n = Math.max(0, Math.min(5, +x.score || 0)), p = "";
       for(var i = 1; i <= 5; i++){ var w = Math.max(0, Math.min(1, n - i + 1)) * 100; p += '<i style="background:linear-gradient(90deg,var(--ink) ' + w + '%,var(--line) ' + w + '%)"></i>'; }
       return '<div class="score"><span class="d">' + esc(x.dim) + '</span><span class="pips">' + p + "<b>" + esc(x.score) + '</b></span><span class="r">' + rich(x.reason) + "</span></div>";
-    }).join("") + '</div><div><p class="h-k">投稿前必须闭环的几件事</p>' + must(s.must_fix) + "</div></div>";
+    }).join("") + (hasScores ? "</div>" : "") + '<div><p class="h-k">' + (IMPORT ? "最该先处理的几件事" : "投稿前必须闭环的几件事") + "</p>" + must(s.must_fix) + "</div></div>";
   }
   return h + "</div>" + stats() + "</section>";
 }
@@ -794,7 +796,7 @@ function stats(){
     var vc = count(D.claims, function(c){ return c.verdict || "?"; }), order = ["撑得住","说过头","对不上","无证据"];
     Object.keys(vc).forEach(function(k){ if(order.indexOf(k) < 0) order.push(k); });
     var cs = order.filter(function(k){ return vc[k]; }).map(function(k){ return [vc[k], k, TONE[vtone(k)]]; });
-    h += '<div class="stat"><div class="k">声明—证据</div><div class="v">' + D.claims.length + "<small>条声明</small></div>" + stack(cs) + sub(cs) + "</div>";
+    if(!IMPORT || D.claims.length) h += '<div class="stat"><div class="k">声明—证据</div><div class="v">' + D.claims.length + "<small>条声明</small></div>" + stack(cs) + sub(cs) + "</div>";
     var tc = count(D.typos, function(t){ return t.type || "其他"; });
     h += '<div class="stat"><div class="k">文字小错</div><div class="v">' + D.typos.length + '<small>处</small></div><div class="sub">' + Object.keys(tc).map(function(k){ return "<span>" + esc(k) + " " + tc[k] + "</span>"; }).join("") + "</div></div>";
   }
@@ -802,7 +804,7 @@ function stats(){
 }
 function passes(){
   var p = D.summary.passes || []; if(!p.length) return "";
-  return '<section id="sec-passes"><div class="sec-h"><h2>六遍检查记录</h2><span class="n">' + p.length + ' 遍</span><span class="hint">哪一遍没发现问题，也会写明已查</span></div><div class="panel passes">' +
+  return '<section id="sec-passes"><div class="sec-h"><h2>' + (IMPORT ? "导入记录" : "六遍检查记录") + '</h2><span class="n">' + p.length + (IMPORT ? " 项" : " 遍") + '</span><span class="hint">' + (IMPORT ? "每份意见拆成了几条，哪些没能对到原文" : "哪一遍没发现问题，也会写明已查") + '</span></div><div class="panel passes">' +
     p.map(function(x, i){ return '<div class="pass"><span class="i">' + String(i + 1).padStart(2, "0") + '</span><span class="nm">' + esc(x.name) + '</span><span class="rs">' + rich(x.result) + "</span></div>"; }).join("") + "</div></section>";
 }
 
@@ -819,7 +821,8 @@ function fixes(x){
 function card(x, tone){
   var p = prio(x), b = "";
   var tags = '<span class="tag ' + p + '">' + p + "</span>" + (CROSS ? '<span class="tag ' + ctone(x.category) + '">' + esc(x.category) + "</span>" : "") +
-             (x.effort ? '<span class="tag line">工作量 ' + esc(x.effort) + "</span>" : "") + (!CROSS && x.group ? '<span class="tag line hide-md">' + esc(x.group) + "</span>" : "");
+             (x.effort ? '<span class="tag line">工作量 ' + esc(x.effort) + "</span>" : "") + (!CROSS && x.group ? '<span class="tag line hide-md">' + esc(x.group) + "</span>" : "") +
+             (!CROSS && x.stance ? '<span class="tag ' + (/^成立/.test(x.stance) ? "bad" : /部分/.test(x.stance) ? "warn" : /不成立/.test(x.stance) ? "ok" : "line") + '">' + esc(x.stance) + "</span>" : "");
   if(CROSS){
     var rs = reviewers(), says = x.says || {};
     b += field("各位怎么说", '<div class="says">' + rs.map(function(k){ var t = says[k], none = !t || /^没提/.test(t); return '<div class="say' + (none ? " none" : "") + '"><div class="who"><span class="rv">' + esc(k) + "</span>审稿人 " + esc(k) + "</div>" + (none ? "没提" : rich(t)) + "</div>"; }).join("") + "</div>");
@@ -827,9 +830,10 @@ function card(x, tone){
     b += field("分歧点", x.disagreement ? '<div class="call bad">' + rich(x.disagreement) + "</div>" : "");
     b += field("怎么判断谁对", x.how_to_decide ? '<div class="call acc">' + rich(x.how_to_decide) + "</div>" : "");
   } else {
+    b += field("意见原话", x.said ? "<blockquote>" + esc(x.said) + "</blockquote>" : "");
     b += field("审稿人会怎么攻击", rich(x.attack), "attack");
     b += field("原文位置", '<div class="loc">' + rich(x.location) + pg(x.page) + "</div>" + (x.quote ? "<blockquote>" + esc(x.quote) + "</blockquote>" : ""));
-    b += field("为什么是问题", rich(x.why));
+    b += field(x.stance ? "回到论文核对" : "为什么是问题", rich(x.why));
   }
   b += field("修改思路", rich(x.approach));
   b += field("最小修复", fixes(x));
@@ -837,7 +841,7 @@ function card(x, tone){
   if(CROSS) b += field("我的决定", '<div class="decide"><div class="seg" data-dec="' + esc(x.id) + '">' + ["采纳","不采纳","待定"].map(function(v){ return '<button data-v="' + v + '">' + v + "</button>"; }).join("") + '</div><input class="note" data-note="' + esc(x.id) + '" placeholder="备注（可不填），比如：只改摘要，不动结论"></div>');
   return '<article class="card" id="' + esc(x.id) + '" data-p="' + p + '" style="--tone:' + TONE[tone || p] + '"><div class="card-h">' +
     (CROSS ? "" : '<input type="checkbox" class="chk" data-done="' + esc(x.id) + '" title="勾上表示已处理" aria-label="已处理">') +
-    '<span class="id">' + esc(x.id) + '</span><span class="tt">' + rich(x.title).replace(/<a [^>]*>([^<]*)<\/a>/g, "$1") + (CROSS && x.sources ? '<span class="src">来源 ' + esc(x.sources) + "</span>" : "") +
+    '<span class="id">' + esc(x.id) + '</span><span class="tt">' + rich(x.title).replace(/<a [^>]*>([^<]*)<\/a>/g, "$1") + (CROSS && x.sources ? '<span class="src">来源 ' + esc(x.sources) + "</span>" : "") + (!CROSS && x.source ? '<span class="src">来源 ' + esc(x.source) + "</span>" : "") +
     '</span><span class="tags">' + tags + (CROSS ? '<span class="tag" data-decbadge="' + esc(x.id) + '" hidden></span>' : "") + '</span><span class="chev">' + ICON.chev + '</span></div><div class="card-b">' + b + "</div></article>";
 }
 function cards(){
@@ -903,7 +907,7 @@ function bar(){
 }
 function nav(){
   var gs = groups(), h = '<div class="nav-label">概览</div><a class="nav-sec" href="#sec-summary" data-spy="sec-summary"><span class="caret"></span>' + (CROSS ? "总结" : "总判断") + "</a>";
-  if(!CROSS && (D.summary.passes || []).length) h += '<a class="nav-sec" href="#sec-passes" data-spy="sec-passes"><span class="caret"></span>六遍检查记录<span class="n">' + D.summary.passes.length + "</span></a>";
+  if(!CROSS && (D.summary.passes || []).length) h += '<a class="nav-sec" href="#sec-passes" data-spy="sec-passes"><span class="caret"></span>' + (IMPORT ? "导入记录" : "六遍检查记录") + '<span class="n">' + D.summary.passes.length + "</span></a>";
   var claimsLink = D.claims.length ? '<a class="nav-sec" href="#sec-claims" data-spy="sec-claims"><span class="caret"></span>声明—证据表<span class="n">' + D.claims.length + "</span></a>" : "";
   if(!CROSS) h += claimsLink;
   h += '<div class="nav-label">' + (CROSS ? "合并后的意见" : "修改意见") + "</div>";
@@ -1053,12 +1057,12 @@ function importer(){
 
 /* ---------- 启动 ---------- */
 function start(imported){
-  CROSS = D.merged.length > 0; ITEMS = CROSS ? D.merged : D.issues;
+  CROSS = D.merged.length > 0; ITEMS = CROSS ? D.merged : D.issues; IMPORT = !CROSS && D.summary.mode === "import";
   document.body.classList.toggle("cross", CROSS);
   IDS = {}; ITEMS.forEach(function(x){ IDS[x.id] = 1; }); D.claims.forEach(function(c){ IDS[c.id] = 1; }); D.typos.forEach(function(t){ IDS[t.id] = 1; });
   KEY = "shenshi:" + (CROSS ? "x:" : "r:") + hash((D.summary.title || "") + "|" + ITEMS.length);
   S = load(); S.done = S.done || {}; S.typo = S.typo || {}; S.dec = S.dec || {}; S.note = S.note || {};
-  document.title = (CROSS ? "交叉汇总 · " : "审稿清单 · ") + (D.summary.title || "论文");
+  document.title = (CROSS ? "交叉汇总 · " : IMPORT ? "审稿意见 · " : "审稿清单 · ") + (D.summary.title || "论文");
   bar(); nav();
   $("#app").innerHTML = hero() + (CROSS ? "" : passes() + claims()) + cards() + (CROSS ? claims() : "") + typos() +
     '<div class="foot"><span>这份报告只做分析，没有修改论文正文。勾选和决定只存在这台电脑的浏览器里。</span><span class="grow"></span>' + (imported ? '<button class="tbtn solid" id="saveBtn">保存成一个 HTML 文件</button>' : "") + "</div>";

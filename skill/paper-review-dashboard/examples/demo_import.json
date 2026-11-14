@@ -1,0 +1,208 @@
+{
+ "summary": {
+  "mode": "import",
+  "title": "SMR: Sparse Mixture Routing for Efficient Long-Context Transformers",
+  "venue": "ICLR 2027",
+  "date": "2026-11-14",
+  "sources": [
+   "Reviewer 1",
+   "Reviewer 2",
+   "导师"
+  ],
+  "verdict": "两位审稿人给了 5 分和 6 分，都在接收线附近。两人都认可想法和写作，扣分集中在三件事：摘要的结论比实验宽、消融没有单独验证路由、和 RouteFormer 的区别没讲清。",
+  "scores": [],
+  "must_fix": [
+   "消融补上\"只去掉路由\"这一行，两位审稿人都提了（R02）",
+   "把\"全面领先\"收窄到实测的两个基准（R01）",
+   "说清 3.1 倍是怎么算的，或者改成表里能算出来的数（R03）",
+   "贡献列表里去掉\"首个\"，写明和 RouteFormer 的区别（R05）"
+  ],
+  "passes": [
+   {
+    "name": "Reviewer 1",
+    "result": "拆成 4 条卡片和 1 处文字小错，4 条都对到了原文。成立 3 条，不成立 1 条（显存其实在附录里，R04）。开头的总结和\"写得清楚\"没有做卡片。"
+   },
+   {
+    "name": "Reviewer 2",
+    "result": "一段话拆成 3 条，都对到了原文。成立 2 条，部分成立 1 条。其中消融那条和 Reviewer 1 的第 2 点是同一件事，合进了 R02。"
+   },
+   {
+    "name": "导师",
+    "result": "1 条，对到了原文，成立（R07）。"
+   }
+  ]
+ },
+ "issues": [
+  {
+   "id": "R01",
+   "source": "Reviewer 1",
+   "said": "The abstract claims that SMR outperforms all prior methods across long-context benchmarks, but Table 2 only covers two benchmarks. This is an overclaim.",
+   "group": "声明与证据",
+   "priority": "P0",
+   "effort": "小",
+   "title": "摘要说“全面领先”，表 2 只测了两个数据集",
+   "location": "摘要第 4 句；同样的说法还出现在第 1 节贡献列表第 3 条、第 6 节第 1 段",
+   "page": 1,
+   "quote": "SMR consistently outperforms all prior methods across long-context benchmarks.",
+   "stance": "成立",
+   "why": "表 2 确实只有 LRA 和 SCROLLS 两个基准，摘要、贡献列表和第 6 节的说法都比这个范围宽。",
+   "approach": "方向是收窄声明，不是补实验。把范围写成实测的两个基准，把“all prior methods”改成表 2 里实际比过的基线。要动三处：摘要、贡献列表、结论，口径要一致。另一条路是补第三个基准，代价是至少一周的算力。",
+   "fixes": [
+    {
+     "where": "摘要第 4 句",
+     "before": "consistently outperforms all prior methods across long-context benchmarks",
+     "after": "outperforms the five baselines in Table 2 on both LRA and SCROLLS"
+    },
+    {
+     "where": "第 6 节第 1 段",
+     "before": "achieves state-of-the-art results across the board",
+     "after": "achieves the best results among the compared methods on LRA and SCROLLS"
+    }
+   ],
+   "needs_author": ""
+  },
+  {
+   "id": "R02",
+   "source": "Reviewer 1、Reviewer 2",
+   "said": "Reviewer 1：The ablation in Table 3 removes several components at once. I cannot tell whether the routing itself helps. Please add a row that removes only the routing.",
+   "group": "实验",
+   "priority": "P0",
+   "effort": "大",
+   "title": "消融缺“只去掉路由”这一行",
+   "location": "第 4.3 节第 2 段，表 3",
+   "page": 7,
+   "quote": "each component contributes to the final gains",
+   "stance": "成立",
+   "why": "表 3 的每一行都同时去掉了两个以上的组件，没有只去掉路由的一行，所以第 4.3 节那句\"每个组件都有贡献\"没有被表格支持。两位审稿人都提到了这一点。",
+   "approach": "最直接的是补这一行实验。来不及的话，把这句话收窄成表 3 实际能支持的说法，并在局限性里写明没有单独消融路由。前者要一次训练，后者只改两句但会削弱贡献。",
+   "fixes": [
+    {
+     "where": "第 4.3 节第 2 段（来不及补实验时）",
+     "before": "each component contributes to the final gains",
+     "after": "removing sparse attention or both components degrades performance; we leave isolating the routing module to future work"
+    }
+   ],
+   "needs_author": "表 3 新增一行：保留稀疏注意力、去掉路由，在 LRA 上的结果。"
+  },
+  {
+   "id": "R03",
+   "source": "Reviewer 1",
+   "said": "Where does the 3.1x reduction in computation come from? I could not find this number in any table.",
+   "group": "声明与证据",
+   "priority": "P0",
+   "effort": "中",
+   "title": "“计算量降低 3.1 倍”在正文和表格里都找不到",
+   "location": "摘要第 5 句",
+   "page": 1,
+   "quote": "while reducing computation by 3.1×",
+   "stance": "成立",
+   "why": "这个数字只出现在摘要里。表 4 给了 FLOPs，但按表里的数算出来不是 3.1 倍，正文也没有说明算法。",
+   "approach": "先弄清 3.1 倍是怎么来的。如果是在另一个序列长度下测的，就在正文写明条件；如果是笔误，就改成表 4 能算出来的 2.4 倍。两种改法都只动摘要一句，但前一种需要作者补一行数据。",
+   "fixes": [
+    {
+     "where": "摘要第 5 句（按表 4 改）",
+     "before": "reducing computation by 3.1×",
+     "after": "reducing FLOPs by 2.4× at 8k tokens (Table 4)"
+    }
+   ],
+   "needs_author": "3.1× 的测量条件（序列长度、批大小）。如果确实测过，请在表 4 里加一行。"
+  },
+  {
+   "id": "R04",
+   "source": "Reviewer 1",
+   "said": "The paper never reports memory usage, which matters for long-context models.",
+   "group": "实验",
+   "priority": "P1",
+   "effort": "小",
+   "title": "显存占用只放在附录，正文没有提",
+   "location": "第 4.2 节第 1 段；附录 C 表 8",
+   "page": 6,
+   "quote": "We evaluate efficiency in terms of FLOPs and latency.",
+   "stance": "不成立",
+   "why": "论文其实报了：附录 C 的表 8 给了三种序列长度下的峰值显存。但正文没有任何一处提到这张表，审稿人看漏是可以理解的。",
+   "approach": "不用补实验，方向是让读者在正文里就能看到。在第 4.2 节交代效率指标的那句里加上显存，并指向附录的表 8。回复审稿人时直接指出表 8 的位置。",
+   "fixes": [
+    {
+     "where": "第 4.2 节第 1 段",
+     "before": "in terms of FLOPs and latency",
+     "after": "in terms of FLOPs, latency, and peak memory (Table 8 in Appendix C)"
+    }
+   ],
+   "needs_author": ""
+  },
+  {
+   "id": "R05",
+   "source": "Reviewer 2",
+   "said": "The authors say they are the first to introduce learned routing into attention, but RouteFormer also learns its routing.",
+   "group": "相关工作与引用",
+   "priority": "P1",
+   "effort": "小",
+   "title": "“首个”的说法没有和 RouteFormer 区分",
+   "location": "第 1 节贡献列表第 1 条",
+   "page": 2,
+   "quote": "the first to introduce learned routing into attention",
+   "stance": "部分成立",
+   "why": "RouteFormer 的路由确实是学出来的，所以\"首个\"这个说法站不住。但两者有实质区别：RouteFormer 按层路由，SMR 按 token 路由。这个区别论文在第 2 节提了一句，没有放进贡献列表。",
+   "approach": "不用删“首个”，加上限定就够：是第一个在 token 到混合专家这一层做路由的。依据是第 2 节自己对 RouteFormer 的描述。",
+   "fixes": [
+    {
+     "where": "第 1 节贡献列表第 1 条",
+     "before": "the first to introduce learned routing into attention",
+     "after": "the first to route tokens to a sparse mixture of attention experts, as opposed to routing between heads"
+    }
+   ],
+   "needs_author": ""
+  },
+  {
+   "id": "R06",
+   "source": "Reviewer 2",
+   "said": "the improvement in Table 2 is only 0.3 points and no standard deviation is given, so I am not convinced the gain is real.",
+   "group": "实验",
+   "priority": "P1",
+   "effort": "中",
+   "title": "表 2 没有标准差，领先幅度只有 0.3",
+   "location": "表 2",
+   "page": 6,
+   "quote": "SMR 41.7 vs. 41.4",
+   "stance": "成立",
+   "why": "表 2 里 SMR 是 41.7，最强基线是 41.4，全表都是单次运行的结果，没有标准差。0.3 的差距在不知道方差的情况下说明不了什么。",
+   "approach": "补三个种子，报均值和标准差。如果差距不显著，把 SCROLLS 上的说法从“超过”改成“持平”。",
+   "fixes": [],
+   "needs_author": "表 2 每个方法三个随机种子的结果。"
+  },
+  {
+   "id": "R07",
+   "source": "导师",
+   "said": "基线的数是从别人论文里抄的，显卡都不一样，这样比不公平，要么重测要么写清楚。",
+   "group": "实验",
+   "priority": "P1",
+   "effort": "中",
+   "title": "延迟对比用了两种显卡",
+   "location": "表 5 表注；附录 B.2",
+   "page": 8,
+   "quote": "Baseline latencies are taken from the original papers.",
+   "stance": "成立",
+   "why": "表 5 的表注写了基线延迟取自原论文，附录 B.2 写了本文用的是另一种显卡。正文第 4.4 节直接拿这两组数算出了加速比，没有提硬件不同。",
+   "approach": "在同一张卡上重测基线是最干净的。如果做不到，就在表注里写明硬件不同，并把正文里“1.8× faster”改成不带倍数的说法。",
+   "fixes": [
+    {
+     "where": "表 5 表注",
+     "before": "Baseline latencies are taken from the original papers.",
+     "after": "Baseline latencies are taken from the original papers (measured on V100); SMR is measured on A100, so the numbers are not directly comparable."
+    }
+   ],
+   "needs_author": "如果重测：五个基线在 A100 上的延迟。"
+  }
+ ],
+ "claims": [],
+ "typos": [
+  {
+   "id": "T01",
+   "location": "摘要第 2 句",
+   "page": 1,
+   "quote": "a efficient routing mechanism",
+   "fix": "an efficient routing mechanism",
+   "type": "语法"
+  }
+ ]
+}

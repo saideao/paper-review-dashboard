@@ -1,0 +1,22 @@
+（示例：一篇虚构论文收到的两份审稿意见和导师的一条批注，内容是编的）
+
+===== Reviewer 1 =====
+Rating: 5 (marginally below the acceptance threshold)
+
+Summary: The paper proposes SMR, a sparse routing layer for long-context Transformers, and reports gains on LRA and SCROLLS. The idea is clear and the paper is well written.
+
+Weaknesses:
+1. The abstract claims that SMR outperforms all prior methods across long-context benchmarks, but Table 2 only covers two benchmarks. This is an overclaim.
+2. The ablation in Table 3 removes several components at once. I cannot tell whether the routing itself helps. Please add a row that removes only the routing.
+3. Where does the 3.1x reduction in computation come from? I could not find this number in any table.
+4. The paper never reports memory usage, which matters for long-context models.
+
+Minor: "a efficient" in the abstract should be "an efficient".
+
+===== Reviewer 2 =====
+Rating: 6 (marginally above the acceptance threshold)
+
+The contribution over RouteFormer is not clear to me. The authors say they are the first to introduce learned routing into attention, but RouteFormer also learns its routing. Also, the improvement in Table 2 is only 0.3 points and no standard deviation is given, so I am not convinced the gain is real. The ablation should isolate the routing component.
+
+===== 导师 =====
+延迟那张表，基线的数是从别人论文里抄的，显卡都不一样，这样比不公平，要么重测要么写清楚。

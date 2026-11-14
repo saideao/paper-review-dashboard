@@ -6,6 +6,7 @@
     python3 check_review.py review.json                # 生成页面之前先查数据
     python3 check_review.py review.html 论文.pdf      # 顺带核对原文引用（需要 pdftotext）
     python3 check_review.py cross_review.html main.tex # LaTeX 源码也行，可以给多个 .tex
+    python3 check_review.py review.html 论文.pdf --said 审稿意见.txt   # 导入的意见：顺带核对"原话"是不是逐字摘的
 
 检查：JSON 数据块齐不齐、是不是合法 JSON，条目数，修改思路和最小修复有没有填全，
 编号有没有重复，声明表里"说过头 / 对不上 / 无证据"的有没有对应卡片，
@@ -67,18 +68,27 @@ def paper_text(paths) -> str:
 def main() -> None:
     if len(sys.argv) < 2:
         sys.exit(__doc__)
-    review = pathlib.Path(sys.argv[1])
-    sources = [pathlib.Path(p) for p in sys.argv[2:]]
-    for p in [review, *sources]:
+    args = sys.argv[1:]
+    said_files = []
+    while "--said" in args:                 # 可以写多次，每次跟一个存着原始审稿意见的文本文件
+        i = args.index("--said")
+        if i + 1 >= len(args):
+            sys.exit("--said 后面要跟一个文件")
+        said_files.append(pathlib.Path(args[i + 1]))
+        del args[i:i + 2]
+    review = pathlib.Path(args[0])
+    sources = [pathlib.Path(p) for p in args[1:]]
+    for p in [review, *sources, *said_files]:
         if not p.is_file():
             sys.exit(f"找不到文件：{p}")
 
     print(f"自检 {review.name}")
     data = load_blocks(review)
     cross = bool(data.get("merged"))
+    imported = not cross and (data.get("summary") or {}).get("mode") == "import"
     need = ["summary", "merged" if cross else "issues", "claims", "typos"]
     missing = [k for k in need if k not in data]
-    print("  类型：" + ("交叉汇总" if cross else "审稿"))
+    print("  类型：" + ("交叉汇总" if cross else "导入已有的审稿意见" if imported else "审稿"))
     print("  数据块：" + ("齐全" if not missing else "缺 " + "、".join(missing)))
 
     paper = paper_text(sources) if sources else ""
@@ -115,9 +125,34 @@ def main() -> None:
             if bad:
                 problems += 1
                 print(f"  ✗ 分歧条目缺'分歧点'或'怎么判断谁对'：{', '.join(bad)}")
+        if imported:
+            STANCES = ("成立", "部分成立", "不成立", "无法判断")
+            for label, bad in [("缺来源", [x.get("id") for x in items if not x.get("source")]),
+                               ("缺原话", [x.get("id") for x in items if not x.get("said")]),
+                               ("核对结果不是 成立 / 部分成立 / 不成立 / 无法判断", [x.get("id") for x in items if x.get("stance") not in STANCES]),
+                               ("缺核对理由", [x.get("id") for x in items if not x.get("why")])]:
+                if bad:
+                    problems += 1
+                    print(f"  ✗ {label}：{', '.join(map(str, bad))}")
+            st = {}
+            for x in items:
+                st[x.get("stance", "?")] = st.get(x.get("stance", "?"), 0) + 1
+            print("  核对结果：" + " / ".join(f"{k} {v}" for k, v in st.items()))
+            noq = [x.get("id") for x in items if not x.get("quote")]
+            if noq:
+                print(f"  没对到论文原句的意见 {len(noq)} 条：{', '.join(noq)}（笼统的意见可以没有，但别太多）")
+            if said_files:
+                said_text = norm("\n".join(p.read_text(encoding="utf-8", errors="ignore") for p in said_files))
+                def said_ok(q: str) -> bool:
+                    q = re.sub(r"^[^：:]{1,12}[：:]", "", q or "", count=1)      # 去掉开头的"审稿人 3："
+                    parts = [x for x in re.split(r"…|\.\.\.|\n", q) if len(norm(x)) > 10]
+                    return all(norm(x) in said_text for x in parts)
+                miss = [x.get("id") for x in items if not said_ok(x.get("said"))]
+                print(f"  原话逐字对上 {len(items) - len(miss)}/{len(items)}" + (f"，对不上：{', '.join(miss)}" if miss else ""))
         if paper:
-            miss = [x.get("id") for x in items if not quote_ok(x.get("quote"))]
-            print(f"  卡片原文逐字对上 {len(items) - len(miss)}/{len(items)}" + (f"，对不上：{', '.join(miss)}" if miss else ""))
+            miss = [x.get("id") for x in items if x.get("quote") and not quote_ok(x.get("quote"))]
+            have = sum(1 for x in items if x.get("quote"))
+            print(f"  卡片原文逐字对上 {have - len(miss)}/{have}" + (f"，对不上：{', '.join(miss)}" if miss else ""))
 
     claims = data.get("claims") or []
     if claims:
