@@ -1,6 +1,6 @@
 # 论文修改看板（paper-review-dashboard）：论文审稿，出一份能勾选的修改清单
 
-给它一篇论文（PDF 或 LaTeX 源码），它会当一个不友好的审稿人，分六遍查：
+给它一篇论文（PDF、Word 或 LaTeX 源码），它会当一个不友好的审稿人，分六遍查：
 
 1. 声明和证据对不对得上；
 2. 方法和实验；
@@ -13,9 +13,26 @@
 
 结果是一个 HTML 文件，双击就能打开：总判断和维度打分、统计卡片、按类别分组的修改卡片、声明—证据表、文字小错表，左侧大纲可以跳转，每条都能勾选"已处理"。
 
-页面的样子是固定的：模型只负责写数据，排版和交互都在一份现成的模板里，所以换哪个模型来审，出来的页面都一样。想先看看效果，打开 `skill/paper-review-dashboard/examples/` 里的 `demo_review.html`、`demo_cross.html` 和 `demo_import.html`（一篇虚构论文的示例）。
+页面的样子是固定的：模型只负责写数据，排版和交互都在一份现成的模板里，所以换哪个模型来审，出来的页面都一样。想先看看效果，打开 `skill/paper-review-dashboard/examples/` 里的 `demo_review.html`、`demo_cross.html`、`demo_import.html` 和 `demo_humanities.html`（都是虚构论文的示例）。
 
 它不绑定任何一家的 agent 或模型。Claude Code、Codex、Cursor 这类 agent，ChatGPT、Claude、Gemini 这类网页聊天，都能用。
+
+## 人文社科论文
+
+文史哲、法学、社会学、教育学、新闻传播这类论文，靠的是问题意识、论证和材料，不是"每句话都有实验数据撑着"。拿理工科那一套去审，会冒出"建议补对照实验""这个结论缺统计显著性"这种不着边际的意见。
+
+所以它会先判断论文是不是人文社科。是的话，换一套审稿标准（`prompts/review_humanities.md`），同样分六遍：
+
+1. 问题意识和学术史：问题是不是真问题，学术史是梳理还是罗列，创新点有没有说大；
+2. 核心论点和论证：论点立不立得住，概念有没有偷换，有没有以偏概全、结论超出论证；
+3. 材料、文献和方法：一手材料够不够，引文准不准，材料有没有被过度解读，理论是不是生搬硬套；
+4. 结构和行文；
+5. 文字小错：错别字、"的地得"、标点、数字用法；
+6. 格式和规范：引注体例、参考文献、匿名。
+
+不做声明—证据表，维度打分换成问题意识与创新、论证、材料与文献、写作与规范。它也不会因为不同意你的立场就判你有问题：只有论证本身有漏洞才算。以实验、问卷统计、计量模型为主的实证研究，还是按默认的那套审。
+
+想强制用哪一套，直接说"按文科审"或"按理科审"。在网页聊天里用，贴 `prompts/review_humanities.md` 的全文。示例见 `examples/demo_humanities.html`，对应的虚构论文片段在 `examples/demo_humanities_paper.txt`。
 
 ## 三种用法
 
@@ -90,7 +107,7 @@ python3 skill/paper-review-dashboard/scripts/build_review.py 旧的review.html -
 python3 skill/paper-review-dashboard/scripts/check_review.py review.html paper.pdf
 ```
 
-它会检查数据块、修改思路和最小修复有没有填全，以及原文引用在论文里能逐字找到几条。找 PDF 里的原文需要装 `pdftotext`；给 `.tex` 源码就不需要。
+它会检查数据块、修改思路和最小修复有没有填全，以及原文引用在论文里能逐字找到几条，中文引文也能核对。找 PDF 里的原文需要装 `pdftotext`；给 `.tex` 源码或 Word 的 `.docx` 就不需要。
 
 ## 参考：几个模型的表现
 

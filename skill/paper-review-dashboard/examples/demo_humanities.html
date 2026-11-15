@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>论文修改看板</title>
+<style>
+:root{
+  --bg:#f5f5f2;--surface:#fff;--surface2:#fafaf8;--sunk:#f1f0ec;
+  --ink:#15171c;--ink2:#474c57;--ink3:#868b96;--line:#e5e4df;--line2:#d6d5cf;
+  --accent:#3344c4;--accent-soft:#eceefb;
+  --p0:#cf3a33;--p0-soft:#fbeceb;--p1:#c27508;--p1-soft:#fbf1df;--p2:#727885;--p2-soft:#eeeff1;
+  --ok:#1c8558;--ok-soft:#e5f4ec;--warn:#b08400;--warn-soft:#faf2d6;--bad:#cf3a33;--bad-soft:#fbeceb;--mute:#727885;--mute-soft:#eeeff1;
+  --ins:#d8f1e2;--del:#fbdcda;
+  --shadow:0 1px 2px rgba(20,22,30,.04),0 8px 24px -12px rgba(20,22,30,.10);
+  --glass:rgba(245,245,242,.78);
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei","Noto Sans CJK SC","Segoe UI",sans-serif;
+  --serif:"Songti SC","STSong","Source Han Serif SC","Noto Serif CJK SC",var(--sans);
+  --quote:"Charter","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Songti SC",serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  --side:272px;--bar:56px;
+}
+:root[data-theme=dark]{
+  --bg:#0d0e11;--surface:#15171c;--surface2:#1a1d23;--sunk:#111317;
+  --ink:#eceef2;--ink2:#b4b9c3;--ink3:#7d838e;--line:#252932;--line2:#333843;
+  --accent:#93a0ff;--accent-soft:#1c2040;
+  --p0:#ff6b63;--p0-soft:#3a1a19;--p1:#f0a63a;--p1-soft:#35270f;--p2:#959ba7;--p2-soft:#22262d;
+  --ok:#4cc38f;--ok-soft:#12301f;--warn:#e0b83a;--warn-soft:#322a0c;--bad:#ff6b63;--bad-soft:#3a1a19;--mute:#959ba7;--mute-soft:#22262d;
+  --ins:#16402b;--del:#4a1f1d;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+  --glass:rgba(13,14,17,.76);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.72 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+a{color:inherit}
+code{font:.9em var(--mono);background:var(--sunk);padding:.1em .38em;border-radius:5px}
+::selection{background:var(--accent-soft)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* 侧边栏 */
+#side{position:fixed;inset:0 auto 0 0;width:var(--side);background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:40;transition:transform .25s ease}
+.side-head{height:var(--bar);display:flex;align-items:center;gap:10px;padding:0 14px 0 20px;border-bottom:1px solid var(--line);flex:none}
+.brand{font:600 15px/1 var(--serif);letter-spacing:.1em;flex:1;white-space:nowrap}
+.brand small{display:block;font:500 10.5px/1 var(--sans);letter-spacing:.12em;color:var(--ink3);margin-top:6px;text-transform:uppercase}
+.icon-btn{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--ink2)}
+.icon-btn:hover{background:var(--sunk);color:var(--ink)}
+.icon-btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#nav{overflow:auto;padding:12px 10px 24px;flex:1;scrollbar-width:thin}
+.nav-sec{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 10px;border-radius:8px;font-size:13.5px;color:var(--ink2);text-decoration:none}
+.nav-sec:hover{background:var(--sunk)}
+.nav-sec.on{color:var(--ink);font-weight:600;background:var(--sunk)}
+.nav-sec .n{margin-left:auto;font:500 11.5px var(--mono);color:var(--ink3)}
+.nav-sec .caret{width:12px;color:var(--ink3);transition:transform .15s;flex:none;font-size:10px;text-align:center}
+.nav-grp.open>.nav-sec .caret{transform:rotate(90deg)}
+.nav-sub{display:none;margin:2px 0 6px 15px;padding-left:8px;border-left:1px solid var(--line)}
+.nav-grp.open>.nav-sub{display:block}
+.nav-item{display:flex;align-items:center;gap:7px;padding:4px 8px;border-radius:6px;font-size:12.5px;color:var(--ink2);text-decoration:none;line-height:1.5}
+.nav-item:hover{background:var(--sunk)}
+.nav-item.on{background:var(--accent-soft);color:var(--ink)}
+.nav-item .id{font:500 11px var(--mono);color:var(--ink3);flex:none}
+.nav-item .t{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;flex:1}
+.nav-item .mk{flex:none;font-size:11px;width:14px;text-align:center}
+.nav-item.done{color:var(--ink3)}.nav-item.done .t{text-decoration:line-through;text-decoration-color:var(--line2)}
+.dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--mute)}
+.dot.P0,.dot.bad{background:var(--p0)}.dot.P1{background:var(--p1)}.dot.P2{background:var(--p2)}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.mute{background:var(--mute)}
+.nav-label{font:600 10.5px var(--sans);letter-spacing:.14em;color:var(--ink3);padding:14px 10px 4px;text-transform:uppercase}
+
+/* 主区 */
+#main{margin-left:var(--side);min-height:100vh;transition:margin .25s ease}
+body.side-off #side{transform:translateX(-100%)}
+body.side-off #main{margin-left:0}
+#bar{position:sticky;top:0;z-index:30;height:var(--bar);display:flex;align-items:center;gap:8px;padding:0 24px;background:var(--glass);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);border-bottom:1px solid var(--line)}
+#bar .grow{flex:1}
+.search{position:relative;flex:0 1 250px;min-width:120px}
+.search input{width:100%;height:34px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:0 10px 0 32px;font-size:13.5px}
+.search input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search svg{position:absolute;left:10px;top:9px;width:15px;height:15px;stroke:var(--ink3);fill:none;stroke-width:1.8;stroke-linecap:round}
+.seg{display:inline-flex;background:var(--sunk);border-radius:9px;padding:3px;gap:2px}
+.seg button{height:28px;padding:0 10px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--ink3);white-space:nowrap}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg button.on.P0{color:var(--p0)}.seg button.on.P1{color:var(--p1)}
+.sel{height:34px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:0 8px;font-size:13px;max-width:150px}
+.tbtn{height:34px;padding:0 11px;border-radius:9px;font-size:13px;color:var(--ink2);border:1px solid transparent;white-space:nowrap}
+.tbtn:hover{background:var(--sunk);color:var(--ink)}
+.tbtn.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tbtn.solid{background:var(--ink);color:var(--bg);font-weight:600}
+.tbtn.solid:hover{opacity:.88;background:var(--ink);color:var(--bg)}
+.wrap{max-width:1000px;margin:0 auto;padding:36px 28px 96px}
+body.cross .wrap{max-width:1140px}
+
+/* 顶部总判断 */
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+.hero-top{padding:34px 38px 30px}
+.eyebrow{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink3);letter-spacing:.04em}
+.eyebrow b{font-weight:600;color:var(--ink2)}
+.paper-title{font:600 17px/1.5 var(--quote);margin:10px 0 0;color:var(--ink2)}
+.verdict{font:600 30px/1.42 var(--serif);letter-spacing:.01em;margin:18px 0 0;text-wrap:balance}
+.verdict-k{font:600 10.5px var(--sans);letter-spacing:.16em;color:var(--accent);text-transform:uppercase;margin-top:26px}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.hero-grid>div{padding:26px 38px 30px}
+.hero-grid>div+div{border-left:1px solid var(--line)}
+.h-k{font:600 10.5px var(--sans);letter-spacing:.16em;color:var(--ink3);text-transform:uppercase;margin:0 0 14px}
+.score{display:grid;grid-template-columns:64px 92px 1fr;gap:4px 14px;align-items:center;padding:8px 0}
+.score+.score{border-top:1px dashed var(--line)}
+.score .d{font-weight:600;font-size:14px}
+.pips{display:flex;gap:3px;align-items:center}
+.pips i{width:13px;height:5px;border-radius:3px;background:var(--line)}
+.pips i.f{background:var(--ink)}
+.pips b{font:600 12.5px var(--mono);margin-left:6px}
+.score .r{font-size:13px;color:var(--ink2);line-height:1.6}
+.must{list-style:none;margin:0;padding:0;counter-reset:m}
+.must li{counter-increment:m;display:grid;grid-template-columns:26px 1fr;gap:8px;padding:8px 0;font-size:14.5px;line-height:1.65}
+.must li+li{border-top:1px dashed var(--line)}
+.must li::before{content:counter(m,decimal-leading-zero);font:500 12px/1.95 var(--mono);color:var(--ink3)}
+.reviewers{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0;border-top:1px solid var(--line)}
+.reviewers>div{padding:22px 38px 24px;font-size:14px;line-height:1.7;color:var(--ink2)}
+.reviewers>div+div{border-left:1px solid var(--line)}
+.rv{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--ink);color:var(--bg);font:700 12px var(--mono);margin-right:8px}
+.ref{font:500 .86em var(--mono);color:var(--accent);background:var(--accent-soft);padding:.08em .4em;border-radius:5px;text-decoration:none;white-space:nowrap}
+.ref:hover{filter:brightness(.95)}
+
+/* 统计 */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.stats.three{grid-template-columns:repeat(3,1fr)}   /* 导入、人文社科没有声明—证据那一格 */
+.empty-after{color:var(--ink3)}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px 16px;min-width:0}
+.stat .k{font-size:12px;color:var(--ink3);letter-spacing:.06em}
+.stat .v{font:600 30px/1.15 var(--serif);margin-top:6px;font-variant-numeric:tabular-nums}
+.stat .v small{font:500 13px var(--sans);color:var(--ink3);margin-left:4px}
+.stat .sub{font-size:12.5px;color:var(--ink2);margin-top:8px;display:flex;flex-wrap:wrap;gap:4px 12px}
+.stat .sub span{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.stack{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--line);margin-top:12px;gap:2px}
+.stack i{display:block;height:100%}
+.prog{height:5px;border-radius:3px;background:var(--line);margin-top:12px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--ok);border-radius:3px;transition:width .3s}
+
+/* 区块 */
+section{margin-top:44px;scroll-margin-top:calc(var(--bar) + 16px)}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin:0 0 14px;padding:0 4px}
+.sec-h h2{font:600 21px/1.3 var(--serif);margin:0;letter-spacing:.02em}
+.sec-h .n{font:500 12.5px var(--mono);color:var(--ink3)}
+.sec-h .hint{font-size:12.5px;color:var(--ink3);margin-left:auto;text-align:right}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.passes{display:grid;grid-template-columns:1fr}
+.pass{display:grid;grid-template-columns:34px 190px 1fr;gap:12px;padding:13px 22px;font-size:14px;align-items:baseline}
+.pass+.pass{border-top:1px solid var(--line)}
+.pass .i{font:500 12px var(--mono);color:var(--ink3)}
+.pass .nm{font-weight:600}
+.pass .rs{color:var(--ink2);line-height:1.65}
+
+/* 卡片 */
+.grp{margin-top:30px;scroll-margin-top:calc(var(--bar) + 16px)}
+.grp-h{display:flex;align-items:center;gap:10px;padding:0 4px 10px}
+.grp-h h3{font:600 15px var(--sans);margin:0}
+.grp-h .n{font:500 12px var(--mono);color:var(--ink3)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-top:8px;scroll-margin-top:calc(var(--bar) + 14px);position:relative;transition:box-shadow .2s,border-color .2s}
+.card::before{content:"";position:absolute;left:-1px;top:14px;bottom:14px;width:3px;border-radius:2px;background:var(--tone,var(--p2))}
+.card.open{box-shadow:var(--shadow);border-color:var(--line2)}
+.card.flash{animation:flash 1.2s ease}
+@keyframes flash{0%,40%{box-shadow:0 0 0 3px var(--accent-soft),var(--shadow);border-color:var(--accent)}}
+.card-h{display:flex;align-items:flex-start;gap:12px;padding:14px 16px 14px 20px;cursor:pointer;user-select:none}
+.card-h .id{font:600 12.5px/1.9 var(--mono);color:var(--ink3);flex:none;width:34px}
+.card-h .tt{flex:1;font-weight:600;font-size:15.5px;line-height:1.55;min-width:0}
+.card-h .src{display:block;font:400 12px var(--mono);color:var(--ink3);margin-top:2px}
+.card-h .tags{display:flex;gap:6px;flex:none;align-items:center;padding-top:2px}
+.card-h .chev{flex:none;width:18px;height:26px;display:grid;place-items:center;color:var(--ink3);transition:transform .2s}
+.card.open .chev{transform:rotate(180deg)}
+.card.done .tt{color:var(--ink3);text-decoration:line-through;text-decoration-color:var(--line2)}
+.tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:600;white-space:nowrap;background:var(--mute-soft);color:var(--mute)}
+.tag.P0,.tag.bad{background:var(--p0-soft);color:var(--p0)}.tag.P1{background:var(--p1-soft);color:var(--p1)}.tag.P2{background:var(--p2-soft);color:var(--p2)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.line{background:none;border:1px solid var(--line);color:var(--ink3);font-weight:500}
+.chk{appearance:none;-webkit-appearance:none;width:19px;height:19px;border:1.5px solid var(--line2);border-radius:6px;flex:none;margin:4px 0 0;cursor:pointer;background:var(--surface);display:grid;place-items:center;transition:.15s}
+.chk:hover{border-color:var(--ok)}
+.chk:checked{background:var(--ok);border-color:var(--ok)}
+.chk:checked::after{content:"";width:9px;height:5px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.card-b{display:none;padding:2px 22px 20px 66px}
+.card.open .card-b{display:block}
+.f{display:grid;grid-template-columns:104px 1fr;gap:16px;padding:13px 0;border-top:1px solid var(--line)}
+.f>.k{font-size:12.5px;font-weight:600;color:var(--ink3);line-height:1.9;letter-spacing:.02em}
+.f>.v{min-width:0;font-size:14.5px}
+.f.attack>.v{font:500 15.5px/1.75 var(--serif);color:var(--ink)}
+.loc{font-size:13px;color:var(--ink2);margin-bottom:8px}
+.pg{font:500 11.5px var(--mono);color:var(--ink3);border:1px solid var(--line);border-radius:5px;padding:.05em .4em;margin-left:6px;white-space:nowrap}
+blockquote{margin:0;padding:12px 16px;background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--line2);border-radius:4px 10px 10px 4px;font:15px/1.7 var(--quote);color:var(--ink);overflow-wrap:anywhere}
+.says{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.say{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.7}
+.say .who{font:600 12px var(--sans);color:var(--ink3);margin-bottom:4px;display:flex;align-items:center}
+.say.none{color:var(--ink3);border-style:dashed;background:none}
+.call{border-radius:10px;padding:12px 14px;font-size:14.5px}
+.call.bad{background:var(--bad-soft)}.call.acc{background:var(--accent-soft)}.call.warn{background:var(--warn-soft)}
+.fix{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.fix+.fix{margin-top:10px}
+.fix .w{padding:7px 14px;font-size:12.5px;color:var(--ink2);background:var(--surface2);border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.fix .ba{display:grid;grid-template-columns:1fr 1fr}
+.fix .ba>div{padding:11px 14px 13px;font:14.5px/1.7 var(--quote);overflow-wrap:anywhere;min-width:0;position:relative}
+.fix .ba>div+div{border-left:1px solid var(--line)}
+.fix .lb{display:block;font:600 10.5px var(--sans);letter-spacing:.12em;color:var(--ink3);margin-bottom:5px}
+del{background:var(--del);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--p0) 55%,transparent);border-radius:3px;padding:0 1px}
+ins{background:var(--ins);text-decoration:none;border-radius:3px;padding:0 1px}
+.copy{position:absolute;right:8px;top:7px;font:500 11px var(--sans);color:var(--ink3);padding:2px 7px;border-radius:5px;border:1px solid var(--line);background:var(--surface);opacity:0;transition:.15s}
+.fix .ba>div:hover .copy{opacity:1}
+.decide{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.decide .seg button.on[data-v="采纳"]{color:var(--ok)}
+.decide .seg button.on[data-v="不采纳"]{color:var(--p0)}
+.decide .seg button.on[data-v="待定"]{color:var(--p1)}
+.note{flex:1;min-width:180px;height:34px;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:0 11px;font-size:13.5px}
+.note:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* 表格 */
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface2)}
+.chip{height:28px;padding:0 11px;border-radius:14px;font-size:12.5px;border:1px solid var(--line);color:var(--ink2);background:var(--surface);display:inline-flex;align-items:center;gap:6px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .c{font:500 11px var(--mono);opacity:.7}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font:600 11.5px var(--sans);letter-spacing:.08em;color:var(--ink3);padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
+td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.65}
+tr:last-child td{border-bottom:0}
+tr.hot td:first-child{box-shadow:inset 3px 0 0 var(--p0)}
+td.id{font:600 12px/1.95 var(--mono);color:var(--ink3);white-space:nowrap}
+td.q{font:14.5px/1.65 var(--quote);min-width:230px;overflow-wrap:anywhere}
+td.sm{font-size:13px;color:var(--ink2)}
+td.nw{white-space:nowrap}
+tr.done td{color:var(--ink3)}tr.done td.q{text-decoration:line-through;text-decoration-color:var(--line2)}
+.fold{border-top:1px solid var(--line)}
+.fold>summary{padding:12px 16px;font-size:13.5px;color:var(--ink2);cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::before{content:"›";display:inline-block;transition:transform .15s;color:var(--ink3)}
+.fold[open]>summary::before{transform:rotate(90deg)}
+.fold[open]>summary{border-bottom:1px solid var(--line)}
+.empty{padding:26px;text-align:center;color:var(--ink3);font-size:14px}
+.foot{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);font-size:13px;color:var(--ink3);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.foot .grow{flex:1}
+
+/* 弹层、导入 */
+.mask{position:fixed;inset:0;background:rgba(10,12,16,.5);backdrop-filter:blur(3px);z-index:60;display:none;place-items:center;padding:20px}
+.mask.show{display:grid}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5);width:min(720px,100%);max-height:86vh;display:flex;flex-direction:column}
+.modal h3{font:600 19px var(--serif);margin:0;padding:22px 26px 6px}
+.modal p{margin:0;padding:0 26px 14px;color:var(--ink2);font-size:13.5px}
+.modal textarea{margin:0 26px;flex:1;min-height:260px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);padding:14px;font:13px/1.65 var(--mono);resize:vertical}
+.modal .act{display:flex;gap:8px;justify-content:flex-end;padding:16px 26px 22px;align-items:center}
+.modal .act .msg{margin-right:auto;font-size:13px;color:var(--p0)}
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:10px;font-size:13.5px;opacity:0;transition:.25s;z-index:80;pointer-events:none}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#scrim{display:none}
+.only-m{display:none}
+
+@media (max-width:1180px){.stats,.stats.three{grid-template-columns:repeat(2,1fr)}.hide-md{display:none}}
+@media (max-width:900px){
+  #side{transform:translateX(-100%);box-shadow:0 0 60px rgba(0,0,0,.3)}
+  body.side-on #side{transform:none}
+  body.side-on #scrim{display:block;position:fixed;inset:0;background:rgba(10,12,16,.45);z-index:35}
+  #main{margin-left:0!important}
+  .only-m{display:grid}
+  #bar{padding:0 12px;overflow-x:auto;scrollbar-width:none}#bar::-webkit-scrollbar{display:none}
+  #bar .grow{display:none}
+  .wrap{padding:20px 14px 80px}
+  .hero-top{padding:24px 22px}.verdict{font-size:23px}
+  .hero-grid{grid-template-columns:1fr}.hero-grid>div{padding:22px}.hero-grid>div+div{border-left:0;border-top:1px solid var(--line)}
+  .reviewers>div{padding:18px 22px}.reviewers>div+div{border-left:0;border-top:1px solid var(--line)}
+  .score{grid-template-columns:60px 1fr}.score .r{grid-column:1/-1}
+  .pass{grid-template-columns:28px 1fr;padding:12px 16px}.pass .rs{grid-column:2}
+  .card-h{padding:12px 12px 12px 16px;gap:9px;flex-wrap:wrap}
+  .card-h .tt{flex-basis:calc(100% - 110px)}
+  .card-h .tags{order:5;flex-basis:100%;padding-left:62px;flex-wrap:wrap}
+  .card-b{padding:0 14px 16px 16px}
+  .f{grid-template-columns:1fr;gap:4px}
+  .fix .ba{grid-template-columns:1fr}.fix .ba>div+div{border-left:0;border-top:1px solid var(--line)}
+  .copy{opacity:1}
+}
+@media print{
+  #side,#bar,.foot button,.copy,.tools{display:none!important}
+  #main{margin:0}.card-b{display:block!important}body{background:#fff}.hero,.card,.panel,.stat{box-shadow:none}
+  .card{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<aside id="side">
+  <div class="side-head">
+    <div class="brand">论文修改看板<small>Paper Review Dashboard</small></div>
+    <button class="icon-btn" id="sideClose" title="收起大纲" aria-label="收起大纲"><svg viewBox="0 0 20 20"><path d="M12 5l-5 5 5 5"/></svg></button>
+  </div>
+  <nav id="nav" aria-label="大纲"></nav>
+</aside>
+<div id="scrim"></div>
+<div id="main">
+  <div id="bar"></div>
+  <div class="wrap" id="app"></div>
+</div>
+<div class="mask" id="mask"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+
+<script type="application/json" id="summary">{
+ "field": "humanities",
+ "title": "清末青川县乡约的重建与地方士绅的权力转移（1895—1911）",
+ "venue": "本学科的核心期刊",
+ "date": "2026-11-15",
+ "verdict": "现在是大修：选题有价值，但核心论点说得比材料大，学术史只是罗列。补齐学术史、收窄结论、补一手材料后可以投。",
+ "scores": [
+  {
+   "dim": "问题意识与创新",
+   "score": 3,
+   "reason": "清末乡约确有讨论空间，但“首次揭示”“填补空白”没有依据（R01），问题也没有从学术史里提出来（R02）。"
+  },
+  {
+   "dim": "论证",
+   "score": 2,
+   "reason": "从一部族谱推出“普遍被大族掌控”（R04），从官方记载推出“普遍支持”（R05），结论比论证走得远（R03）。"
+  },
+  {
+   "dim": "材料与文献",
+   "score": 2.5,
+   "reason": "只用县志和族谱，没有档案、诉讼文书等能直接看到乡约运作的材料（R06）。"
+  },
+  {
+   "dim": "写作与规范",
+   "score": 3.5,
+   "reason": "行文清楚，但核心概念前后换了说法（R07），理论引用流于装饰（R08）。"
+  }
+ ],
+ "must_fix": [
+  "把“彻底改变”“完全取代”收窄到材料能撑住的范围，摘要和结论一起改（R03）",
+  "删去“首次揭示”“填补空白”，改为说明本文推进了什么（R01）",
+  "重写学术史：梳理脉络，指出已有研究具体缺什么（R02）",
+  "补一手材料，至少要有能看到乡约处理纠纷的案例（R06）",
+  "统一“司法化 / 行政化”，先界定再使用（R07）"
+ ],
+ "passes": [
+  {
+   "name": "问题意识和学术史",
+   "result": "发现 2 处：创新点说大（R01），学术史只罗列、没有提出问题（R02）。"
+  },
+  {
+   "name": "核心论点和论证",
+   "result": "发现 4 处：结论超出论证（R03），以个案推普遍（R04），材料解读过度（R05），结论里冒出正文没论证的新观点（R09）。"
+  },
+  {
+   "name": "材料、文献和方法",
+   "result": "发现 2 处：一手材料单薄（R06），理论框架生硬（R08）。"
+  },
+  {
+   "name": "结构和行文",
+   "result": "发现 1 处：核心概念前后不一（R07）。摘要写成了“本文研究了……”，并入 R01 一起改。"
+  },
+  {
+   "name": "文字小错",
+   "result": "摘要 1 处，引言 1 处，第二节 2 处，第三节 0 处，结论 1 处，共 5 处。"
+  },
+  {
+   "name": "格式和规范",
+   "result": "发现 1 处：学术史里的“张某”“李某”没有注释出处（R10）。匿名：已查，未发现。"
+  }
+ ]
+}</script>
+<script type="application/json" id="issues">[
+ {
+  "id": "R01",
+  "group": "问题意识与创新",
+  "priority": "P0",
+  "effort": "小",
+  "title": "“首次揭示”“填补空白”没有依据",
+  "attack": "作者自称首次揭示乡约与新政的关系，但文中既没有梳理这方面的已有研究，正文也几乎没有讨论新政。",
+  "location": "摘要最后一句；引言第一段末",
+  "page": 1,
+  "quote": "本文首次揭示了乡约与新政之间的关系，填补了这一领域的空白。",
+  "why": "“首次”“填补空白”是审稿人最容易质疑的说法。正文只在第三节提到一句科举废除，对新政本身没有展开，这句话等于承诺了正文没做的事。",
+  "approach": "删掉“首次”“填补空白”，改为说明本文具体做了什么：以一个县为个案，看清末乡约的职能变化和主持者构成。如果作者确实想谈新政，要在正文补一节，工作量会变成“大”。",
+  "fixes": [
+   {
+    "where": "摘要最后一句",
+    "before": "本文首次揭示了乡约与新政之间的关系，填补了这一领域的空白。",
+    "after": "本文以青川县为个案，考察清末乡约职能与主持者的变化，为理解新政前后的基层社会提供一个县域视角。"
+   }
+  ],
+  "needs_author": ""
+ },
+ {
+  "id": "R02",
+  "group": "学术史与文献综述",
+  "priority": "P1",
+  "effort": "中",
+  "title": "学术史只是罗列，没有从中提出问题",
+  "attack": "引言用“某某认为”串起四位学者，最后一句“都没有关注清末”就算交代了研究缺口，看不出本文要和谁对话。",
+  "location": "一、引言 第一段",
+  "page": 1,
+  "quote": "这些研究都很重要，但是都没有关注清末这一时段。",
+  "why": "只说“前人没研究这个时段”不足以构成问题意识：时段空白本身不说明值得研究。审稿人会问：清末的乡约和此前有什么不同，为什么这个不同重要。",
+  "approach": "把已有研究按观点分成两三条脉络（国家控制说、教化说、宗族说），说明每条脉络对清末乡约会给出什么预期，再指出本文的材料在哪一点上和这些预期不符。这样问题就从学术史里长出来了。",
+  "fixes": [
+   {
+    "where": "引言第一段末",
+    "before": "这些研究都很重要，但是都没有关注清末这一时段。",
+    "after": "上述研究大体从国家控制与教化两条思路理解乡约，默认乡约的主导权在官府。但清末乡约开始处理田土、婚姻纠纷，其主持者也多出自大族，这一变化是否意味着主导权的转移，已有研究尚未正面讨论。"
+   }
+  ],
+  "needs_author": "补齐张某、李某、王某、赵某各自的论著出处，并补查近十年清末基层社会研究中直接讨论乡约的论著。"
+ },
+ {
+  "id": "R03",
+  "group": "核心论点",
+  "priority": "P0",
+  "effort": "小",
+  "title": "核心结论“彻底改变”“完全取代”说得比材料大",
+  "attack": "一部县志、一部族谱，怎么能得出士绅“完全取代了官府”？乡约重建本身就是知县下令的，官府显然还在。",
+  "location": "摘要；四、结论 第一句",
+  "page": 1,
+  "quote": "乡约在清末的重建彻底改变了青川的地方权力结构，士绅完全取代了官府在基层的统治。",
+  "why": "第二节自己写到乡约是知县周某下令重建的，这和“完全取代官府”直接矛盾。正文能撑住的是：乡约的职能扩大了，主持者多为士绅，士绅在基层事务中的作用上升了。",
+  "approach": "把结论收窄到“士绅借乡约扩大了在基层事务中的作用”，摘要和结论两处一起改。若作者坚持“取代”，需要补出官府在基层退出的证据（比如县衙受理词讼数量下降），这要新材料。",
+  "fixes": [
+   {
+    "where": "四、结论 第一句",
+    "before": "乡约在清末的重建彻底改变了青川的地方权力结构，士绅完全取代了官府在基层的统治。",
+    "after": "乡约在清末的重建扩大了士绅在青川基层事务中的作用，官府虽仍主导乡约的设立，但日常纠纷的处理已有相当部分转入士绅之手。"
+   },
+   {
+    "where": "摘要第二句",
+    "before": "士绅借助乡约完全取代了官府在基层的统治",
+    "after": "士绅借助乡约扩大了在基层事务中的作用"
+   }
+  ],
+  "needs_author": ""
+ },
+ {
+  "id": "R04",
+  "group": "论证逻辑",
+  "priority": "P0",
+  "effort": "中",
+  "title": "从一部族谱推出“各乡普遍被大族掌控”",
+  "attack": "陈氏一族三人当过约正，只能说明陈氏所在的那个乡，怎么就成了“青川各乡普遍”？",
+  "location": "三、士绅与乡约 第一段",
+  "page": 2,
+  "quote": "由此可见，青川各乡的乡约普遍被大族所掌控。",
+  "why": "这是以个案推普遍。要说“普遍”，至少要有各乡约正的名单和身份统计；没有的话，只能说到陈氏所在的乡为止。",
+  "approach": "两种办法二选一：一是收窄说法，只说陈氏的情况；二是补材料，从县志或其他族谱里尽量整理出各乡约正名单，统计其中出自大族的比例。后者更有说服力，但工作量大。",
+  "fixes": [
+   {
+    "where": "第三节第一段末",
+    "before": "由此可见，青川各乡的乡约普遍被大族所掌控。",
+    "after": "至少在陈氏聚居的乡，乡约长期由大族成员主持。"
+   }
+  ],
+  "needs_author": "如选择补材料：整理各乡约正名单及其家族背景。"
+ },
+ {
+  "id": "R05",
+  "group": "材料与引文",
+  "priority": "P1",
+  "effort": "小",
+  "title": "把县志的官方说法读成了“乡民普遍支持”",
+  "attack": "“乡民毕集”是县志的套话，只能说明官府希望呈现的样子，读不出乡民支持与否。",
+  "location": "二、青川乡约的重建 第一段",
+  "page": 2,
+  "quote": "可见乡约的重建得到了乡民的普遍支持。",
+  "why": "方志对地方官政绩的记载多有修饰，“乡民毕集”属于常见的书写模式。从中读出“普遍支持”是材料解读过度。",
+  "approach": "删去这个推论，或改成只描述县志的记载本身，并点明这是官方叙述。若想讨论乡民态度，需要找其他角度的材料（文集、诉讼文书、民间文献）。",
+  "fixes": [
+   {
+    "where": "第二节第一段末",
+    "before": "可见乡约的重建得到了乡民的普遍支持。",
+    "after": "这是县志从官府角度留下的记载，乡民的实际态度还需其他材料印证。"
+   }
+  ],
+  "needs_author": ""
+ },
+ {
+  "id": "R06",
+  "group": "材料与引文",
+  "priority": "P0",
+  "effort": "大",
+  "title": "缺少能直接看到乡约运作的一手材料",
+  "attack": "全文说乡约“开始处理田土、婚姻等纠纷”，却一个具体案例都没有。",
+  "location": "二、青川乡约的重建 第二段；全文",
+  "page": 2,
+  "quote": "重建后的乡约不仅承担宣讲功能，还开始处理田土、婚姻等纠纷。",
+  "why": "“乡约司法化”是本文最有新意的观察，但目前只有一句断言。没有案例，审稿人无法判断这个变化有多普遍、乡约处理纠纷的方式是什么。",
+  "approach": "到县档案馆或已出版的地方文献里找乡约调处纠纷的记录、约规、诉状，选两三个案例写进第二节。这是让论文立住的关键，建议优先做。",
+  "fixes": [],
+  "needs_author": "乡约处理纠纷的具体案例（档案、约规、诉讼文书、碑刻等），注明出处。"
+ },
+ {
+  "id": "R07",
+  "group": "概念与理论",
+  "priority": "P1",
+  "effort": "小",
+  "title": "核心概念“司法化”和“行政化”前后混用",
+  "attack": "同一个变化，前面叫司法化，后面又叫行政化，这是两个不同的概念。",
+  "location": "二、青川乡约的重建 第二段",
+  "page": 2,
+  "quote": "笔者将这种变化称为“乡约的司法化”，后文又称之为“乡约的行政化”。",
+  "why": "司法化指承担纠纷裁断，行政化指承担征派、治安等行政事务，两者不能互换。概念不统一，读者会怀疑作者自己没想清楚要论证什么。",
+  "approach": "按正文实际讨论的内容（处理田土、婚姻纠纷）选定“司法化”，给出一句界定，全文统一。",
+  "fixes": [
+   {
+    "where": "第二节第二段末",
+    "before": "在下文中，笔者将这种变化称为“乡约的司法化”，后文又称之为“乡约的行政化”。",
+    "after": "下文将乡约承担纠纷调处与裁断的变化称为“乡约的司法化”。"
+   }
+  ],
+  "needs_author": ""
+ },
+ {
+  "id": "R08",
+  "group": "概念与理论",
+  "priority": "P2",
+  "effort": "小",
+  "title": "福柯的引用只是装饰，和论证没有关系",
+  "attack": "“权力无处不在”放在这里，既没解释，也没用来分析材料。",
+  "location": "三、士绅与乡约 第二段末",
+  "page": 2,
+  "quote": "正如福柯所说，权力无处不在，乡约中的权力关系也是如此。",
+  "why": "理论引用要么用来提出分析框架，要么用来和材料对话。这一句两样都不是，反而会让审稿人觉得理论在生搬硬套。",
+  "approach": "直接删去。如果作者确实想用某种权力理论，应该放到引言里说明为什么选它、怎么用，再在正文分析中真正用上。",
+  "fixes": [
+   {
+    "where": "第三节第二段末",
+    "before": "正如福柯所说，权力无处不在，乡约中的权力关系也是如此。",
+    "after": ""
+   }
+  ],
+  "needs_author": ""
+ },
+ {
+  "id": "R09",
+  "group": "论证逻辑",
+  "priority": "P1",
+  "effort": "小",
+  "title": "结论冒出了正文没有论证过的新观点",
+  "attack": "民国地方自治和今天的基层治理，正文一个字都没提，结论里却说“奠定了基础”“有重要启示”。",
+  "location": "四、结论 第一段末",
+  "page": 2,
+  "quote": "此外，乡约的重建也为民国时期的地方自治奠定了基础，这对于理解今天的基层治理也有重要启示。",
+  "why": "结论应当从正文论证中得出。新观点没有论证支撑，既显得空泛，又会被审稿人当作过度引申。",
+  "approach": "删去，或改成一句克制的展望，明确说这是有待研究的问题。",
+  "fixes": [
+   {
+    "where": "结论第一段末",
+    "before": "此外，乡约的重建也为民国时期的地方自治奠定了基础，这对于理解今天的基层治理也有重要启示。",
+    "after": "乡约的这些变化与民国初年地方自治之间有何关联，有待进一步研究。"
+   }
+  ],
+  "needs_author": ""
+ },
+ {
+  "id": "R10",
+  "group": "注释与格式",
+  "priority": "P1",
+  "effort": "小",
+  "title": "学术史引到的观点没有注明出处",
+  "attack": "“张某认为……”加了引号，却没有注释，看不出引自哪本书、哪一页。",
+  "location": "一、引言 第一段",
+  "page": 1,
+  "quote": "如张某认为乡约是“国家权力向下延伸的工具”",
+  "why": "加引号的直接引文必须注明出处和页码，否则可能被认为引用不规范。其他几位学者的观点虽是转述，也应出注。",
+  "approach": "按目标期刊的引注体例，给四位学者的观点逐一加脚注，直接引文写到页码。",
+  "fixes": [],
+  "needs_author": "张某、李某、王某、赵某论著的完整出处，直接引文的页码。"
+ }
+]</script>
+<script type="application/json" id="claims">[]</script>
+<script type="application/json" id="typos">[
+ {
+  "id": "T01",
+  "location": "摘要第一句",
+  "page": 1,
+  "quote": "本文研究了清末青川县乡约制度的变化。",
+  "fix": "本文考察清末青川县乡约职能与主持者的变化。",
+  "type": "其他"
+ },
+ {
+  "id": "T02",
+  "location": "一、引言 第一段",
+  "page": 1,
+  "quote": "这些研究都很重要，但是都没有关注",
+  "fix": "这些研究都很重要，但都没有关注",
+  "type": "语法"
+ },
+ {
+  "id": "T03",
+  "location": "二、青川乡约的重建 第二段",
+  "page": 2,
+  "quote": "已经成为了基层的的司法机构",
+  "fix": "已经成为基层的司法机构",
+  "type": "错别字"
+ },
+ {
+  "id": "T04",
+  "location": "二、青川乡约的重建 第一段",
+  "page": 2,
+  "quote": "光绪二十一年（1895年）",
+  "fix": "光绪二十一年（1895）",
+  "type": "数字用法"
+ },
+ {
+  "id": "T05",
+  "location": "四、结论 第一句",
+  "page": 2,
+  "quote": "综上所述，乡约在清末的重建",
+  "fix": "乡约在清末的重建",
+  "type": "其他"
+ }
+]</script>
+
+<script>
+(function(){
+"use strict";
+var SRC = "<!doctype html>\n" + document.documentElement.outerHTML;   // 渲染前的原始页面，"保存页面"时用
+var $ = function(s, r){ return (r || document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+function read(id){ var e = document.getElementById(id); if(!e) return null; try{ return JSON.parse(e.textContent); }catch(x){ return null; } }
+var D = { summary: read("summary") || {}, issues: read("issues") || [], merged: read("merged") || [], claims: read("claims") || [], typos: read("typos") || [] };
+var CROSS, IMPORT, HUM, ITEMS, KEY, S;   /* HUM：人文社科论文（summary.field === "humanities"），不做声明—证据表 */
+  /* IMPORT：导入已有的审稿意见（summary.mode === "import"），卡片上多"原话"和"核对结果" */
+
+/* ---------- 小工具 ---------- */
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+var IDS = {};
+function rich(s){   // 转义 + `代码` + 换行 + 把 R01 / X03 / C02 / T05 变成可点的编号
+  return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\n/g, "<br>")
+    .replace(/\b([RXCT]\d{2,3})\b/g, function(m){ return IDS[m] ? '<a class="ref" href="#' + m + '" data-go="' + m + '">' + m + "</a>" : m; });
+}
+function pg(p){ p = +p; return p > 0 ? '<span class="pg">第 ' + p + " 页</span>" : ""; }
+function tok(s){ return String(s).match(/[A-Za-z0-9_\\]+|\s+|[一-鿿]|[^\sA-Za-z0-9_\\一-鿿]/g) || []; }
+function diff(a, b){   // 词级对比，只高亮改动的词
+  var x = tok(a), y = tok(b), n = x.length, m = y.length;
+  if(!n || !m || n * m > 400000) return [esc(a), esc(b)];
+  var L = [], i, j;
+  for(i = 0; i <= n; i++){ L.push(new Uint16Array(m + 1)); }
+  for(i = n - 1; i >= 0; i--) for(j = m - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  var words = function(t){ return t.filter(function(w){ return /\S/.test(w); }).length; };
+  if(L[0][0] && words(x) && L[0][0] / Math.max(n, m) < 0.25) return [esc(a), esc(b)];   // 几乎全不一样，就不标了
+  var A = "", B = "", da = "", db = "";
+  function flush(){ if(da){ A += "<del>" + esc(da) + "</del>"; da = ""; } if(db){ B += "<ins>" + esc(db) + "</ins>"; db = ""; } }
+  i = 0; j = 0;
+  while(i < n && j < m){
+    if(x[i] === y[j]){
+      if((da || db) && /^\s+$/.test(x[i]) && i + 1 < n && j + 1 < m && x[i + 1] !== y[j + 1]){ if(da) da += x[i]; else A += esc(x[i]); if(db) db += y[j]; else B += esc(y[j]); }
+      else { flush(); A += esc(x[i]); B += esc(y[j]); }
+      i++; j++;
+    } else if(L[i + 1][j] >= L[i][j + 1]) da += x[i++]; else db += y[j++];
+  }
+  while(i < n) da += x[i++]; while(j < m) db += y[j++]; flush();
+  return [A, B];
+}
+function hash(s){ var h = 5381; s = String(s); for(var i = 0; i < s.length; i++) h = (h * 33 ^ s.charCodeAt(i)) >>> 0; return h.toString(36); }
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || {}; }catch(e){ return {}; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function toast(t){ var e = $("#toast"); e.textContent = t; e.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.classList.remove("show"); }, 1800); }
+function copy(t, ok){
+  var done = function(){ toast(ok || "已复制"); };
+  if(navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).then(done, fb);
+  fb();
+  function fb(){ var a = document.createElement("textarea"); a.value = t; a.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(a); a.select(); try{ document.execCommand("copy"); done(); }catch(e){ toast("复制失败，请手动选中复制"); } a.remove(); }
+}
+function download(name, text, type){ var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], {type: type || "text/plain;charset=utf-8"})); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+var ICON = {
+  menu:'<svg viewBox="0 0 20 20"><path d="M3 6h14M3 10h14M3 14h14"/></svg>',
+  sun:'<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="3.2"/><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4"/></svg>',
+  moon:'<svg viewBox="0 0 20 20"><path d="M16.5 11.6A6.8 6.8 0 018.4 3.5a6.8 6.8 0 108.1 8.1z"/></svg>',
+  chev:'<svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l5 5 5-5"/></svg>'
+};
+var PR = {P0:0, P1:1, P2:2};
+function prio(x){ var p = String(x.priority || "").toUpperCase().slice(0, 2); return PR[p] == null ? "P2" : p; }
+function vtone(v){ v = String(v || ""); return /撑得住|^成立|一致/.test(v) ? "ok" : /说过头|部分/.test(v) ? "warn" : /对不上|无证据|不成立|不一致/.test(v) ? "bad" : "mute"; }
+function ctone(c){ c = String(c || ""); return /^共识/.test(c) ? "ok" : /部分共识/.test(c) ? "warn" : /分歧/.test(c) ? "bad" : "mute"; }
+var TONE = {ok:"var(--ok)", warn:"var(--warn)", bad:"var(--p0)", mute:"var(--mute)", P0:"var(--p0)", P1:"var(--p1)", P2:"var(--p2)"};
+function reviewers(){
+  var set = {};
+  Object.keys(D.summary.verdicts || {}).forEach(function(k){ set[k] = 1; });
+  ITEMS.forEach(function(x){ Object.keys(x.says || {}).forEach(function(k){ set[k] = 1; }); });
+  D.claims.forEach(function(c){ if(c.verdicts && typeof c.verdicts === "object") Object.keys(c.verdicts).forEach(function(k){ set[k] = 1; }); });
+  return Object.keys(set).sort();
+}
+
+/* ---------- 分组 ---------- */
+var G_ORDER = ["声明与证据","数字一致性","方法学","实验","相关工作与引用","写作结构","术语与符号","图表","格式与匿名",
+               /* 人文社科（summary.field === "humanities"） */
+               "问题意识与创新","学术史与文献综述","核心论点","论证逻辑","概念与理论","材料与引文","研究方法","结构安排","语言表达","注释与格式","口味项"];
+function groups(){
+  var by = {}, order = [];
+  ITEMS.forEach(function(x){ var g = (CROSS ? x.category : x.group) || "其他"; if(!by[g]){ by[g] = []; order.push(g); } by[g].push(x); });
+  var rank = function(g){
+    if(!CROSS){ var i = G_ORDER.indexOf(g); return i < 0 ? 50 : i; }
+    return /^共识/.test(g) ? 0 : /部分共识/.test(g) ? 1 : /分歧/.test(g) ? 2 : /无法判断/.test(g) ? 9 : 5;
+  };
+  order.sort(function(a, b){ return rank(a) - rank(b) || (CROSS ? a.localeCompare(b, "zh") : 0); });
+  return order.map(function(g){
+    var list = by[g].slice().sort(function(a, b){ return PR[prio(a)] - PR[prio(b)]; });
+    return { name: g, items: list, tone: CROSS ? ctone(g) : null };
+  });
+}
+
+/* ---------- 渲染：顶部 ---------- */
+function hero(){
+  var s = D.summary, h = '<section id="sec-summary" style="margin-top:0"><div class="hero"><div class="hero-top">';
+  h += '<div class="eyebrow">' + (CROSS ? "<span><b>交叉汇总</b></span>" : IMPORT ? "<span><b>导入的审稿意见</b></span>" : "<span><b>审稿清单</b></span>") +
+       (HUM ? "<span><b>人文社科</b></span>" : "") +
+       (s.venue ? "<span>" + (HUM ? "目标期刊" : "目标会议") + " · <b>" + esc(s.venue) + "</b></span>" : "") + (s.date ? "<span>" + (CROSS ? "汇总" : IMPORT ? "导入" : "审稿") + "日期 · <b>" + esc(s.date) + "</b></span>" : "") +
+       (CROSS ? "<span>审稿人 · <b>" + reviewers().join("、") + "</b></span>" : "") +
+       (IMPORT && (s.sources || []).length ? "<span>来源 · <b>" + s.sources.map(esc).join("、") + "</b></span>" : "") + "</div>";
+  h += '<div class="paper-title">' + esc(s.title || "（没写题目）") + "</div>";
+  h += '<div class="verdict-k">' + (CROSS ? "几份意见的关系" : IMPORT ? "这些意见合起来说了什么" : "总判断") + "</div>";
+  h += '<p class="verdict">' + rich(CROSS ? s.relation : s.verdict) + "</p></div>";
+  if(CROSS){
+    var vs = s.verdicts || {}, ks = Object.keys(vs);
+    if(ks.length){ h += '<div class="reviewers">' + ks.map(function(k){ return '<div><div class="h-k"><span class="rv">' + esc(k) + "</span>审稿人 " + esc(k) + " 的总判断</div>" + rich(vs[k]) + "</div>"; }).join("") + "</div>"; }
+    h += '<div class="hero-grid" style="grid-template-columns:1fr"><div><p class="h-k">优先改这几件事 · 只从共识里选</p>' + must(s.top_fixes) + "</div></div>";
+  } else {
+    var hasScores = (s.scores || []).length > 0;   /* 导入的意见一般没有维度打分，这时右边那栏占满 */
+    h += '<div class="hero-grid"' + (hasScores ? "" : ' style="grid-template-columns:1fr"') + ">" + (hasScores ? '<div><p class="h-k">维度打分 · 满分 5</p>' : "") + (s.scores || []).map(function(x){
+      var n = Math.max(0, Math.min(5, +x.score || 0)), p = "";
+      for(var i = 1; i <= 5; i++){ var w = Math.max(0, Math.min(1, n - i + 1)) * 100; p += '<i style="background:linear-gradient(90deg,var(--ink) ' + w + '%,var(--line) ' + w + '%)"></i>'; }
+      return '<div class="score"><span class="d">' + esc(x.dim) + '</span><span class="pips">' + p + "<b>" + esc(x.score) + '</b></span><span class="r">' + rich(x.reason) + "</span></div>";
+    }).join("") + (hasScores ? "</div>" : "") + '<div><p class="h-k">' + (IMPORT ? "最该先处理的几件事" : HUM ? "投稿前必须解决的几件事" : "投稿前必须闭环的几件事") + "</p>" + must(s.must_fix) + "</div></div>";
+  }
+  return h + "</div>" + stats() + "</section>";
+}
+function must(a){ a = a || []; return a.length ? '<ol class="must">' + a.map(function(t){ return "<li><span>" + rich(t) + "</span></li>"; }).join("") + "</ol>" : '<div class="empty">没有列出</div>'; }
+function count(arr, f){ var o = {}; arr.forEach(function(x){ var k = f(x); o[k] = (o[k] || 0) + 1; }); return o; }
+function stats(){
+  var pc = count(ITEMS, prio), n = ITEMS.length, h = '<div class="stats">';
+  var stack = function(parts){ return '<div class="stack">' + parts.filter(function(p){ return p[0]; }).map(function(p){ return '<i style="flex:' + p[0] + ";background:" + p[1] + '"></i>'; }).join("") + "</div>"; };
+  var sub = function(parts){ return '<div class="sub">' + parts.map(function(p){ return '<span><i class="dot" style="background:' + p[2] + '"></i>' + esc(p[1]) + " " + p[0] + "</span>"; }).join("") + "</div>"; };
+  if(CROSS){
+    var gs = groups().map(function(g){ return [g.items.length, g.name, TONE[g.tone]]; });
+    h += '<div class="stat" style="grid-column:span 2"><div class="k">合并后的意见</div><div class="v">' + n + "<small>条</small></div>" + stack(gs) + sub(gs) + "</div>";
+    h += '<div class="stat"><div class="k">P0 · 不改可能被拒</div><div class="v" style="color:var(--p0)">' + (pc.P0 || 0) + "<small>条</small></div>" + sub([[pc.P1 || 0, "P1", TONE.P1], [pc.P2 || 0, "P2", TONE.P2]]) + "</div>";
+    h += '<div class="stat"><div class="k">已做决定</div><div class="v"><span id="doneN">0</span><small>/ ' + n + '</small></div><div class="prog"><i id="doneBar" style="width:0"></i></div><div class="sub" id="decSub"></div></div>';
+  } else {
+    var ps = [[pc.P0 || 0, "P0", TONE.P0], [pc.P1 || 0, "P1", TONE.P1], [pc.P2 || 0, "P2", TONE.P2]];
+    h += '<div class="stat"><div class="k">修改意见</div><div class="v">' + n + "<small>条</small></div>" + stack(ps) + sub(ps) + "</div>";
+    h += '<div class="stat"><div class="k">已处理</div><div class="v"><span id="doneN">0</span><small>/ ' + n + '</small></div><div class="prog"><i id="doneBar" style="width:0"></i></div><div class="sub"><span id="donePct">0%</span></div></div>';
+    var vc = count(D.claims, function(c){ return c.verdict || "?"; }), order = ["撑得住","说过头","对不上","无证据"];
+    Object.keys(vc).forEach(function(k){ if(order.indexOf(k) < 0) order.push(k); });
+    var cs = order.filter(function(k){ return vc[k]; }).map(function(k){ return [vc[k], k, TONE[vtone(k)]]; });
+    if((!IMPORT && !HUM) || D.claims.length) h +='<div class="stat"><div class="k">声明—证据</div><div class="v">' + D.claims.length + "<small>条声明</small></div>" + stack(cs) + sub(cs) + "</div>";
+    var tc = count(D.typos, function(t){ return t.type || "其他"; });
+    h += '<div class="stat"><div class="k">文字小错</div><div class="v">' + D.typos.length + '<small>处</small></div><div class="sub">' + Object.keys(tc).map(function(k){ return "<span>" + esc(k) + " " + tc[k] + "</span>"; }).join("") + "</div></div>";
+  }
+  if((h.match(/class="stat"/g) || []).length === 3) h = h.replace('class="stats"', 'class="stats three"');
+  return h + "</div>";
+}
+function passes(){
+  var p = D.summary.passes || []; if(!p.length) return "";
+  return '<section id="sec-passes"><div class="sec-h"><h2>' + (IMPORT ? "导入记录" : "六遍检查记录") + '</h2><span class="n">' + p.length + (IMPORT ? " 项" : " 遍") + '</span><span class="hint">' + (IMPORT ? "每份意见拆成了几条，哪些没能对到原文" : "哪一遍没发现问题，也会写明已查") + '</span></div><div class="panel passes">' +
+    p.map(function(x, i){ return '<div class="pass"><span class="i">' + String(i + 1).padStart(2, "0") + '</span><span class="nm">' + esc(x.name) + '</span><span class="rs">' + rich(x.result) + "</span></div>"; }).join("") + "</div></section>";
+}
+
+/* ---------- 渲染：卡片 ---------- */
+function field(k, v, cls){ return v ? '<div class="f ' + (cls || "") + '"><div class="k">' + k + '</div><div class="v">' + v + "</div></div>" : ""; }
+function fixes(x){
+  var a = (x.fixes || []).filter(function(f){ return f && (f.before || f.after); }); if(!a.length) return "";
+  return a.map(function(f, i){
+    var d = diff(f.before || "", f.after || "");
+    return '<div class="fix"><div class="w">' + (a.length > 1 ? '<span class="tag line">第 ' + (i + 1) + " 处</span>" : "") + "<span>" + rich(f.where || "改动位置") + '</span></div><div class="ba"><div><span class="lb">改前</span>' + d[0] +
+      '<button class="copy" data-copy="' + esc(f.before || "") + '">复制</button></div><div><span class="lb">改后</span>' + (f.after ? d[1] : '<span class="empty-after">（删去这句）</span>') + '<button class="copy" data-copy="' + esc(f.after || "") + '">复制</button></div></div></div>';
+  }).join("");
+}
+function card(x, tone){
+  var p = prio(x), b = "";
+  var tags = '<span class="tag ' + p + '">' + p + "</span>" + (CROSS ? '<span class="tag ' + ctone(x.category) + '">' + esc(x.category) + "</span>" : "") +
+             (x.effort ? '<span class="tag line">工作量 ' + esc(x.effort) + "</span>" : "") + (!CROSS && x.group ? '<span class="tag line hide-md">' + esc(x.group) + "</span>" : "") +
+             (!CROSS && x.stance ? '<span class="tag ' + (/^成立/.test(x.stance) ? "bad" : /部分/.test(x.stance) ? "warn" : /不成立/.test(x.stance) ? "ok" : "line") + '">' + esc(x.stance) + "</span>" : "");
+  if(CROSS){
+    var rs = reviewers(), says = x.says || {};
+    b += field("各位怎么说", '<div class="says">' + rs.map(function(k){ var t = says[k], none = !t || /^没提/.test(t); return '<div class="say' + (none ? " none" : "") + '"><div class="who"><span class="rv">' + esc(k) + "</span>审稿人 " + esc(k) + "</div>" + (none ? "没提" : rich(t)) + "</div>"; }).join("") + "</div>");
+    b += field("原文核对", '<div class="loc">' + rich(x.location) + pg(x.page) + "</div>" + (x.quote ? "<blockquote>" + esc(x.quote) + "</blockquote>" : ""));
+    b += field("分歧点", x.disagreement ? '<div class="call bad">' + rich(x.disagreement) + "</div>" : "");
+    b += field("怎么判断谁对", x.how_to_decide ? '<div class="call acc">' + rich(x.how_to_decide) + "</div>" : "");
+  } else {
+    b += field("意见原话", x.said ? "<blockquote>" + esc(x.said) + "</blockquote>" : "");
+    b += field(HUM ? "审稿人会怎么说" : "审稿人会怎么攻击", rich(x.attack), "attack");
+    b += field("原文位置", '<div class="loc">' + rich(x.location) + pg(x.page) + "</div>" + (x.quote ? "<blockquote>" + esc(x.quote) + "</blockquote>" : ""));
+    b += field(x.stance ? "回到论文核对" : "为什么是问题", rich(x.why));
+  }
+  b += field("修改思路", rich(x.approach));
+  b += field("最小修复", fixes(x));
+  b += field("需要作者补充", x.needs_author ? '<div class="call warn">' + rich(x.needs_author) + "</div>" : "");
+  if(CROSS) b += field("我的决定", '<div class="decide"><div class="seg" data-dec="' + esc(x.id) + '">' + ["采纳","不采纳","待定"].map(function(v){ return '<button data-v="' + v + '">' + v + "</button>"; }).join("") + '</div><input class="note" data-note="' + esc(x.id) + '" placeholder="备注（可不填），比如：只改摘要，不动结论"></div>');
+  return '<article class="card" id="' + esc(x.id) + '" data-p="' + p + '" style="--tone:' + TONE[tone || p] + '"><div class="card-h">' +
+    (CROSS ? "" : '<input type="checkbox" class="chk" data-done="' + esc(x.id) + '" title="勾上表示已处理" aria-label="已处理">') +
+    '<span class="id">' + esc(x.id) + '</span><span class="tt">' + rich(x.title).replace(/<a [^>]*>([^<]*)<\/a>/g, "$1") + (CROSS && x.sources ? '<span class="src">来源 ' + esc(x.sources) + "</span>" : "") + (!CROSS && x.source ? '<span class="src">来源 ' + esc(x.source) + "</span>" : "") +
+    '</span><span class="tags">' + tags + (CROSS ? '<span class="tag" data-decbadge="' + esc(x.id) + '" hidden></span>' : "") + '</span><span class="chev">' + ICON.chev + '</span></div><div class="card-b">' + b + "</div></article>";
+}
+function cards(){
+  var gs = groups();
+  return '<section id="sec-cards"><div class="sec-h"><h2>' + (CROSS ? "合并后的意见" : "修改意见") + '</h2><span class="n" id="cardsN"></span><span class="hint">' + (CROSS ? "先改共识；分歧的由你拍板" : "组内按 P0 → P1 → P2 排；点标题展开") + "</span></div>" +
+    gs.map(function(g, i){
+      return '<div class="grp" id="grp-' + i + '"><div class="grp-h">' + (g.tone ? '<i class="dot ' + g.tone + '"></i>' : "") + "<h3>" + esc(g.name) + '</h3><span class="n">' + g.items.length + " 条</span></div>" +
+        g.items.map(function(x){ return card(x, g.tone); }).join("") + "</div>";
+    }).join("") + '<div class="empty" id="noCards" hidden>没有符合筛选条件的条目</div></section>';
+}
+
+/* ---------- 渲染：声明表、小错表 ---------- */
+function claimRow(c, rs){
+  var vv = c.verdicts && typeof c.verdicts === "object" ? c.verdicts : null;
+  var split = vv && Object.keys(vv).some(function(k){ return vv[k] && vv[k] !== vv[Object.keys(vv)[0]]; });
+  var h = '<tr id="' + esc(c.id) + '" data-v="' + esc(c.verdict) + '" class="' + (split ? "hot" : "") + '"><td class="id">' + esc(c.id) + '</td><td class="q">' + esc(c.claim) + '</td>';
+  h += '<td class="sm">' + rich(c.location) + pg(c.page) + "</td>";
+  if(CROSS) h += rs.map(function(k){ var v = vv ? vv[k] : ""; return '<td class="nw">' + (v ? '<span class="tag ' + vtone(v) + '">' + esc(v) + "</span>" : '<span class="tag line">没列</span>') + "</td>"; }).join("");
+  else h += '<td class="sm">' + rich(c.evidence || "无") + "</td>";
+  h += '<td class="nw"><span class="tag ' + vtone(c.verdict) + '">' + esc(c.verdict) + "</span>" + (split ? '<div style="margin-top:4px"><span class="tag bad">判断不一致</span></div>' : "") + '</td><td class="sm">' + rich(c.note) + (c.issue_id ? " " + rich("→ " + c.issue_id) : "") + "</td></tr>";
+  return { html: h, split: split };
+}
+function claims(){
+  var cs = D.claims; if(!cs.length) return "";
+  var rs = CROSS ? reviewers() : [];
+  var head = "<thead><tr><th>编号</th><th>声明原句</th><th>出现位置</th>" + (CROSS ? rs.map(function(k){ return "<th>审稿人 " + esc(k) + "</th>"; }).join("") + "<th>现在的判断</th><th>理由</th>" : "<th>证据位置</th><th>判断</th><th>说明</th>") + "</tr></thead>";
+  var rows = cs.map(function(c){ var r = claimRow(c, rs); r.c = c; return r; });
+  var hot, cold, foldLabel;
+  if(CROSS){ hot = rows.filter(function(r){ return r.split; }); cold = rows.filter(function(r){ return !r.split; }); foldLabel = "判断一致的声明"; }
+  else { hot = rows.filter(function(r){ return !/撑得住/.test(r.c.verdict); }); cold = rows.filter(function(r){ return /撑得住/.test(r.c.verdict); }); foldLabel = "撑得住的声明"; }
+  var vc = count(hot.map(function(r){ return r.c; }), function(c){ return c.verdict || "?"; });
+  var chips = Object.keys(vc).length > 1 ? '<div class="tools" id="claimChips"><button class="chip on" data-cv="">全部 <span class="c">' + hot.length + "</span></button>" + Object.keys(vc).map(function(k){ return '<button class="chip" data-cv="' + esc(k) + '"><i class="dot ' + vtone(k) + '"></i>' + esc(k) + ' <span class="c">' + vc[k] + "</span></button>"; }).join("") + "</div>" : "";
+  var tbl = function(list){ return '<div class="tw"><table>' + head + "<tbody>" + list.map(function(r){ return r.html; }).join("") + "</tbody></table></div>"; };
+  return '<section id="sec-claims"><div class="sec-h"><h2>声明—证据对照表' + (CROSS ? "（合并版）" : "") + '</h2><span class="n">' + cs.length + ' 条</span><span class="hint">' + (CROSS ? "判断不一致的排在最前" : "默认只显示有问题的声明") + '</span></div><div class="panel">' + chips +
+    (hot.length ? tbl(hot) : '<div class="empty">' + (CROSS ? "各位审稿人对声明的判断都一致" : "没有发现说过头、对不上或无证据的声明") + "</div>") +
+    (cold.length ? '<details class="fold"><summary>' + foldLabel + " · " + cold.length + " 条</summary>" + tbl(cold) + "</details>" : "") + "</div></section>";
+}
+function typos(){
+  var ts = D.typos, rm = CROSS && D.summary.removed_typos;
+  if(!ts.length && !rm) return "";
+  var tc = count(ts, function(t){ return t.type || "其他"; });
+  var chips = '<div class="tools" id="typoChips"><button class="chip on" data-tt="">全部 <span class="c">' + ts.length + "</span></button>" + Object.keys(tc).map(function(k){ return '<button class="chip" data-tt="' + esc(k) + '">' + esc(k) + ' <span class="c">' + tc[k] + "</span></button>"; }).join("") + '<span style="flex:1"></span><span style="font-size:12.5px;color:var(--ink3)" id="typoN"></span></div>';
+  var rows = ts.map(function(t){
+    var d = diff(t.quote || "", t.fix || "");
+    return '<tr id="' + esc(t.id) + '" data-t="' + esc(t.type || "其他") + '"><td><input type="checkbox" class="chk" style="margin:2px 0 0" data-typo="' + esc(t.id) + '" aria-label="已改"></td><td class="id">' + esc(t.id) + '</td><td class="sm">' + rich(t.location) + pg(t.page) +
+      '</td><td class="q">' + d[0] + '</td><td class="q">' + d[1] + '</td><td class="nw"><span class="tag line">' + esc(t.type || "其他") + "</span></td>" + (CROSS ? '<td class="nw sm">' + esc(String(t.from || "").split("").join("、")) + "</td>" : "") + "</tr>";
+  }).join("");
+  return '<section id="sec-typos"><div class="sec-h"><h2>文字小错' + (CROSS ? "（合并去重）" : "") + '</h2><span class="n">' + ts.length + ' 处</span><span class="hint">按出现顺序排</span></div><div class="panel">' + chips +
+    '<div class="tw"><table><thead><tr><th><input type="checkbox" class="chk" id="typoAll" title="全部勾选" aria-label="全部勾选"></th><th>编号</th><th>位置</th><th>原文</th><th>改成</th><th>类型</th>' + (CROSS ? "<th>谁提的</th>" : "") + "</tr></thead><tbody>" + rows + "</tbody></table></div>" +
+    (rm ? '<details class="fold"><summary>核对后删掉的小错</summary><div style="padding:14px 18px;font-size:14px;color:var(--ink2)">' + rich(rm) + "</div></details>" : "") + "</div></section>";
+}
+
+/* ---------- 工具栏、侧边栏 ---------- */
+function bar(){
+  var gs = groups();
+  $("#bar").innerHTML = '<button class="icon-btn" id="sideOpen" title="大纲" aria-label="大纲">' + ICON.menu + '</button>' +
+    '<label class="search"><svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.5"/><path d="M13.5 13.5L17 17"/></svg><input id="q" type="search" placeholder="搜索编号、标题、原文…" aria-label="搜索"></label>' +
+    '<div class="seg" id="prioSeg" title="按优先级筛选">' + ["P0","P1","P2"].map(function(p){ return '<button class="' + p + '" data-p="' + p + '">' + p + "</button>"; }).join("") + "</div>" +
+    '<select class="sel" id="grpSel" aria-label="按' + (CROSS ? "共识类别" : "类别") + '筛选"><option value="">全部' + (CROSS ? "类别" : "类别") + "</option>" + gs.map(function(g){ return "<option>" + esc(g.name) + "</option>"; }).join("") + "</select>" +
+    (CROSS ? '<button class="tbtn" id="onlyDis">只看分歧</button>' : "") + '<button class="tbtn" id="onlyOpen">' + (CROSS ? "只看未处理" : "只看未勾选") + "</button>" +
+    '<span class="grow"></span><button class="tbtn" id="toggleAll">全部展开</button>' + (CROSS ? '<button class="tbtn solid" id="exportBtn">导出我的决定</button>' : '<button class="tbtn" id="clearBtn">清空勾选</button>') +
+    '<button class="icon-btn" id="themeBtn" title="浅色 / 深色" aria-label="切换浅色深色"></button>';
+}
+function nav(){
+  var gs = groups(), h = '<div class="nav-label">概览</div><a class="nav-sec" href="#sec-summary" data-spy="sec-summary"><span class="caret"></span>' + (CROSS ? "总结" : "总判断") + "</a>";
+  if(!CROSS && (D.summary.passes || []).length) h += '<a class="nav-sec" href="#sec-passes" data-spy="sec-passes"><span class="caret"></span>' + (IMPORT ? "导入记录" : "六遍检查记录") + '<span class="n">' + D.summary.passes.length + "</span></a>";
+  var claimsLink = D.claims.length ? '<a class="nav-sec" href="#sec-claims" data-spy="sec-claims"><span class="caret"></span>声明—证据表<span class="n">' + D.claims.length + "</span></a>" : "";
+  if(!CROSS) h += claimsLink;
+  h += '<div class="nav-label">' + (CROSS ? "合并后的意见" : "修改意见") + "</div>";
+  gs.forEach(function(g, i){
+    h += '<div class="nav-grp" data-g="' + i + '"><a class="nav-sec" href="#grp-' + i + '" data-spy="grp-' + i + '"><span class="caret">▸</span>' + (g.tone ? '<i class="dot ' + g.tone + '"></i>' : "") + esc(g.name) + '<span class="n" data-gn="' + i + '">' + g.items.length + '</span></a><div class="nav-sub">' +
+      g.items.map(function(x){ return '<a class="nav-item" href="#' + esc(x.id) + '" data-go="' + esc(x.id) + '" data-spy="' + esc(x.id) + '" title="' + esc(x.title) + '"><i class="dot ' + prio(x) + '"></i><span class="id">' + esc(x.id) + '</span><span class="t">' + esc(x.title) + '</span><span class="mk"></span></a>'; }).join("") + "</div></div>";
+  });
+  if(CROSS || D.typos.length) h += '<div class="nav-label">表格</div>';
+  if(CROSS) h += claimsLink;
+  if(D.typos.length || (CROSS && D.summary.removed_typos)) h += '<a class="nav-sec" href="#sec-typos" data-spy="sec-typos"><span class="caret"></span>文字小错<span class="n">' + D.typos.length + "</span></a>";
+  $("#nav").innerHTML = h;
+}
+
+/* ---------- 状态同步 ---------- */
+var F = { q: "", p: {}, g: "", open: false, dis: false, cv: "", tt: "" };
+function isDone(id){ return CROSS ? (S.dec[id] === "采纳" || S.dec[id] === "不采纳") : !!S.done[id]; }
+function sync(){
+  var n = 0, dc = {};
+  ITEMS.forEach(function(x){
+    var id = x.id, el = document.getElementById(id), nv = $('.nav-item[data-go="' + id + '"]'), d = isDone(id); if(d) n++;
+    if(el) el.classList.toggle("done", d && !CROSS);
+    if(nv){ nv.classList.toggle("done", d); var mk = $(".mk", nv), v = S.dec[id]; mk.textContent = CROSS ? (v === "采纳" ? "✓" : v === "不采纳" ? "✕" : v === "待定" ? "…" : "") : (d ? "✓" : ""); mk.style.color = CROSS ? (v === "采纳" ? "var(--ok)" : v === "不采纳" ? "var(--p0)" : "var(--p1)") : "var(--ok)"; }
+    if(CROSS){
+      var v2 = S.dec[id] || ""; if(v2) dc[v2] = (dc[v2] || 0) + 1;
+      $$('[data-dec="' + id + '"] button').forEach(function(b){ b.classList.toggle("on", b.dataset.v === v2); });
+      var bd = $('[data-decbadge="' + id + '"]'); if(bd){ bd.hidden = !v2; bd.textContent = v2; bd.className = "tag " + (v2 === "采纳" ? "ok" : v2 === "不采纳" ? "bad" : "warn"); }
+    } else { var cb = $('[data-done="' + id + '"]'); if(cb) cb.checked = d; }
+  });
+  var tot = ITEMS.length || 1; $("#doneN").textContent = n; $("#doneBar").style.width = (n / tot * 100) + "%";
+  if($("#donePct")) $("#donePct").textContent = "完成 " + Math.round(n / tot * 100) + "%";
+  if($("#decSub")) $("#decSub").innerHTML = ["采纳","不采纳","待定"].map(function(k){ return "<span>" + k + " " + (dc[k] || 0) + "</span>"; }).join("");
+  var tn = 0; D.typos.forEach(function(t){ var on = !!S.typo[t.id]; if(on) tn++; var cb = $('[data-typo="' + t.id + '"]'); if(cb){ cb.checked = on; cb.closest("tr").classList.toggle("done", on); } });
+  if($("#typoN")) $("#typoN").textContent = "已改 " + tn + " / " + D.typos.length;
+  if($("#typoAll")) $("#typoAll").checked = D.typos.length > 0 && tn === D.typos.length;
+}
+function apply(){
+  var q = F.q.trim().toLowerCase(), ps = Object.keys(F.p).filter(function(k){ return F.p[k]; }), shown = 0;
+  var gs = groups();
+  gs.forEach(function(g, i){
+    var c = 0;
+    g.items.forEach(function(x){
+      var ok = (!ps.length || ps.indexOf(prio(x)) >= 0) && (!F.g || g.name === F.g) && (!F.open || !isDone(x.id)) && (!F.dis || /分歧/.test(x.category || "")) && (!q || JSON.stringify(x).toLowerCase().indexOf(q) >= 0);
+      var el = document.getElementById(x.id), nv = $('.nav-item[data-go="' + x.id + '"]');
+      if(el) el.hidden = !ok; if(nv) nv.hidden = !ok; if(ok) c++;
+    });
+    shown += c; $("#grp-" + i).hidden = !c; var ng = $('.nav-grp[data-g="' + i + '"]'); ng.hidden = !c; $('[data-gn="' + i + '"]').textContent = c === g.items.length ? c : c + "/" + g.items.length;
+  });
+  $("#noCards").hidden = shown > 0; $("#cardsN").textContent = shown === ITEMS.length ? ITEMS.length + " 条" : "显示 " + shown + " / " + ITEMS.length + " 条";
+  $$("#sec-claims tbody tr").forEach(function(tr){ tr.hidden = (F.cv && !tr.closest("details") && tr.dataset.v !== F.cv) || (q && tr.textContent.toLowerCase().indexOf(q) < 0); });
+  $$("#sec-typos tbody tr").forEach(function(tr){ tr.hidden = (F.tt && tr.dataset.t !== F.tt) || (q && tr.textContent.toLowerCase().indexOf(q) < 0); });
+  if(q){ var f = $("#sec-claims details"); if(f && $$("tbody tr", f).some(function(tr){ return !tr.hidden; })) f.open = true; }
+  $$("#prioSeg button").forEach(function(b){ b.classList.toggle("on", !!F.p[b.dataset.p]); });
+  $("#onlyOpen").classList.toggle("on", F.open); if($("#onlyDis")) $("#onlyDis").classList.toggle("on", F.dis);
+  spy();
+}
+function theme(t){ document.documentElement.dataset.theme = t; $("#themeBtn").innerHTML = t === "dark" ? ICON.sun : ICON.moon; }
+function go(id){
+  var el = document.getElementById(id); if(!el) return;
+  if(el.hidden){ F = { q: "", p: {}, g: "", open: false, dis: false, cv: "", tt: "" }; $("#q").value = ""; $("#grpSel").value = ""; apply(); }
+  var d = el.closest("details"); if(d) d.open = true;
+  if(el.classList.contains("card")){ el.classList.add("open"); }
+  el.scrollIntoView({behavior: "smooth", block: "start"});
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  document.body.classList.remove("side-on");
+}
+var spyT = 0;
+function spy(){
+  if(spyT) return; spyT = requestAnimationFrame(function(){
+    spyT = 0;
+    var top = $("#bar").getBoundingClientRect().bottom + 24, cur = null, sec = null;
+    $$("[data-spy]").forEach(function(a){
+      var el = document.getElementById(a.dataset.spy); if(!el || el.hidden || !el.offsetParent) return;
+      if(el.getBoundingClientRect().top <= top){ if(a.classList.contains("nav-item")) cur = a; else { sec = a; cur = null; } }
+    });
+    if(innerHeight + scrollY >= document.documentElement.scrollHeight - 4){ var last = $$(".nav-sec[data-spy]").filter(function(a){ var e = document.getElementById(a.dataset.spy); return e && !e.hidden; }).pop(); if(last && !cur) sec = last; }
+    $$("[data-spy].on").forEach(function(a){ if(a !== cur && a !== sec) a.classList.remove("on"); });
+    if(sec) sec.classList.add("on");
+    if(cur){ cur.classList.add("on"); var g = cur.closest(".nav-grp"); if(g && !g.classList.contains("open") && !g.dataset.closed) g.classList.add("open"); }
+    var a = cur || sec; if(a){ var nv = $("#nav"), r = a.getBoundingClientRect(), nr = nv.getBoundingClientRect(); if(r.top < nr.top + 8 || r.bottom > nr.bottom - 8) nv.scrollTop += r.top - nr.top - nr.height / 2; }
+  });
+}
+
+/* ---------- 导出 ---------- */
+function exportMd(){
+  var s = D.summary, out = ["# 我对审稿意见的决定", "", "论文：" + (s.title || ""), "", "请只修改「采纳」里的条目，其他的不要动。每改一处，告诉我改了哪一句、对应哪个编号。", ""];
+  var sec = function(name, list){ if(!list.length) return; out.push("## " + name + "（" + list.length + " 条）", ""); list.forEach(function(x){ var n = (S.note[x.id] || "").trim(); out.push("- **" + x.id + "** " + x.title + (x.sources ? "（来源 " + x.sources + "）" : "") + (n ? "\n  - 备注：" + n : ""));
+      if(name === "采纳"){
+        if(x.location) out.push("  - 位置：" + x.location + (+x.page > 0 ? "，第 " + x.page + " 页" : ""));
+        (x.fixes || []).forEach(function(f){ if(f && (f.before || f.after)) out.push("  - 改法" + (f.where ? "（" + f.where + "）" : "") + "：`" + f.before + "` → `" + f.after + "`"); });
+        if(x.needs_author) out.push("  - 需要我补充：" + x.needs_author);
+      }
+    }); out.push(""); };
+  var by = function(v){ return ITEMS.filter(function(x){ return (S.dec[x.id] || "") === v; }); };
+  sec("采纳", by("采纳")); sec("不采纳", by("不采纳")); sec("待定", by("待定")); sec("还没决定", by(""));
+  var ty = D.typos.filter(function(t){ return S.typo[t.id]; });
+  if(ty.length){ out.push("## 文字小错：改这些（" + ty.length + " 处）", ""); ty.forEach(function(t){ out.push("- **" + t.id + "** " + (t.location || "") + (+t.page > 0 ? "，第 " + t.page + " 页" : "") + "：`" + t.quote + "` → `" + t.fix + "`"); }); out.push(""); }
+  var md = out.join("\n");
+  modal('<h3>导出我的决定</h3><p>贴回给 AI，让它只改你采纳的条目。文字小错只导出已勾选的。</p><textarea id="mdOut" readonly></textarea><div class="act"><button class="tbtn" data-close>关闭</button><button class="tbtn" id="mdDl">下载 .md</button><button class="tbtn solid" id="mdCp">复制</button></div>');
+  $("#mdOut").value = md;
+  $("#mdCp").onclick = function(){ copy(md, "已复制，贴回给 AI 就行"); };
+  $("#mdDl").onclick = function(){ download("我的决定.md", md, "text/markdown;charset=utf-8"); };
+}
+function modal(html){ $("#modal").innerHTML = html; $("#mask").classList.add("show"); }
+function closeModal(){ $("#mask").classList.remove("show"); }
+
+/* ---------- 导入数据（模板里还没有数据时） ---------- */
+function parseAny(text){
+  text = String(text).trim();
+  if(/<script[^>]+application\/json/i.test(text)){
+    var o = {}, re = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi, m;
+    while((m = re.exec(text))){ if(!/application\/json/i.test(m[1])) continue; var id = /id\s*=\s*["']([^"']+)["']/i.exec(m[1]); if(id){ try{ o[id[1]] = JSON.parse(m[2]); }catch(e){} } }
+    return o;
+  }
+  var a = text.indexOf("{"), b = text.lastIndexOf("}"); if(a < 0 || b < 0) throw new Error("没找到 JSON");
+  return JSON.parse(text.slice(a, b + 1));
+}
+function embed(o){
+  var out = SRC;
+  ["summary","issues","merged","claims","typos"].forEach(function(id){
+    var v = o[id]; if(v == null) v = id === "summary" ? {} : [];
+    var json = JSON.stringify(v, null, 1).replace(/<\//g, "<\\/").replace(new RegExp("<!-" + "-", "g"), "\\u003c!-" + "-");
+    var re = new RegExp('(<script type="application/json" id="' + id + '">)[\\s\\S]*?(</scr' + 'ipt>)');
+    if((id === "issues" || id === "merged") && !(v && v.length)) out = out.replace(new RegExp('<script type="application/json" id="' + id + '">[\\s\\S]*?</scr' + 'ipt>\\n?'), "");
+    else out = out.replace(re, function(_, a, b){ return a + json + b; });
+  });
+  return out;
+}
+function importer(){
+  document.body.classList.add("side-off");
+  $("#bar").innerHTML = '<span style="font:600 15px var(--serif);letter-spacing:.14em">论文修改看板</span><span class="grow"></span><button class="icon-btn" id="themeBtn"></button>';
+  $("#app").innerHTML = '<div class="hero" style="max-width:760px;margin:6vh auto 0"><div class="hero-top"><div class="verdict-k" style="margin-top:0">空白模板</div><p class="verdict">把审稿数据放进来，就能看到清单</p>' +
+    '<p style="color:var(--ink2);margin:14px 0 0">这是「论文修改看板」的页面模板，里面还没有数据。把模型输出的 JSON 贴到下面，或者选一个 <code>.json</code> 文件、一份旧的 <code>review.html</code>。数据只在你这台电脑的浏览器里处理，不联网、不上传。</p>' +
+    '<textarea id="imp" placeholder="把模型输出的 JSON 贴在这里" style="width:100%;min-height:220px;margin-top:18px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);padding:14px;font:13px/1.65 var(--mono);resize:vertical"></textarea>' +
+    '<div style="display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap"><button class="tbtn solid" id="impGo">生成清单</button><label class="tbtn" style="display:inline-flex;align-items:center;border-color:var(--line);cursor:pointer">选择文件<input type="file" id="impFile" accept=".json,.html,.htm,.txt" hidden></label><span id="impMsg" style="font-size:13px;color:var(--p0)"></span></div></div></div>';
+  theme(matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light");
+  $("#themeBtn").onclick = function(){ theme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"); };
+  function run(text){
+    try{
+      var o = parseAny(text); if(!o.summary || !((o.issues && o.issues.length) || (o.merged && o.merged.length))) throw new Error("缺 summary，或 issues / merged 是空的");
+      D = { summary: o.summary, issues: o.issues || [], merged: o.merged || [], claims: o.claims || [], typos: o.typos || [] };
+      document.body.classList.remove("side-off"); start(true);
+    }catch(e){ $("#impMsg").textContent = "读不出来：" + e.message; }
+  }
+  $("#impGo").onclick = function(){ run($("#imp").value); };
+  $("#impFile").onchange = function(){ var f = this.files[0]; if(!f) return; var r = new FileReader(); r.onload = function(){ run(r.result); }; r.readAsText(f); };
+}
+
+/* ---------- 启动 ---------- */
+function start(imported){
+  CROSS = D.merged.length > 0; ITEMS = CROSS ? D.merged : D.issues; IMPORT = !CROSS && D.summary.mode === "import"; HUM = D.summary.field === "humanities";
+  document.body.classList.toggle("cross", CROSS);
+  IDS = {}; ITEMS.forEach(function(x){ IDS[x.id] = 1; }); D.claims.forEach(function(c){ IDS[c.id] = 1; }); D.typos.forEach(function(t){ IDS[t.id] = 1; });
+  KEY = "shenshi:" + (CROSS ? "x:" : "r:") + hash((D.summary.title || "") + "|" + ITEMS.length);
+  S = load(); S.done = S.done || {}; S.typo = S.typo || {}; S.dec = S.dec || {}; S.note = S.note || {};
+  document.title = (CROSS ? "交叉汇总 · " : IMPORT ? "审稿意见 · " : "审稿清单 · ") + (D.summary.title || "论文");
+  bar(); nav();
+  $("#app").innerHTML = hero() + (CROSS ? "" : passes() + claims()) + cards() + (CROSS ? claims() : "") + typos() +
+    '<div class="foot"><span>这份报告只做分析，没有修改论文正文。勾选和决定只存在这台电脑的浏览器里。</span><span class="grow"></span>' + (imported ? '<button class="tbtn solid" id="saveBtn">保存成一个 HTML 文件</button>' : "") + "</div>";
+  theme(S.theme || (matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light"));
+  if(S.sideOff && innerWidth > 900) document.body.classList.add("side-off");
+  $$("[data-note]").forEach(function(i){ i.value = S.note[i.dataset.note] || ""; });
+  var first = $(".nav-grp"); if(first) first.classList.add("open");
+  sync(); apply();
+  if(imported) $("#saveBtn").onclick = function(){ download(CROSS ? "cross_review.html" : "review.html", embed(D), "text/html;charset=utf-8"); };
+  if(location.hash.length > 1) setTimeout(function(){ go(decodeURIComponent(location.hash.slice(1))); }, 60);
+}
+document.addEventListener("click", function(e){
+  var t = e.target, el;
+  if((el = t.closest("[data-copy]"))){ copy(el.dataset.copy); return; }
+  if((el = t.closest("[data-go]"))){ e.preventDefault(); go(el.dataset.go); return; }
+  if((el = t.closest("[data-close]")) || t.id === "mask"){ closeModal(); return; }
+  if((el = t.closest("[data-dec] button"))){ var id = el.parentNode.dataset.dec; S.dec[id] = S.dec[id] === el.dataset.v ? "" : el.dataset.v; save(); sync(); if(F.open) apply(); return; }
+  if(t.closest("[data-done]") || t.closest(".note") || t.closest(".decide")) return;
+  if((el = t.closest(".card-h"))){ if(String(getSelection()) && !t.closest(".chev")) return; el.parentNode.classList.toggle("open"); return; }
+  if((el = t.closest(".nav-grp > .nav-sec"))){ var g = el.parentNode; if(t.closest(".caret")){ e.preventDefault(); g.classList.toggle("open"); g.dataset.closed = g.classList.contains("open") ? "" : "1"; return; } g.classList.add("open"); g.dataset.closed = ""; }
+  if((el = t.closest(".nav-sec"))){ document.body.classList.remove("side-on"); return; }
+  if((el = t.closest("#prioSeg button"))){ F.p[el.dataset.p] = !F.p[el.dataset.p]; apply(); return; }
+  if((el = t.closest("[data-cv]"))){ F.cv = el.dataset.cv; $$("#claimChips .chip").forEach(function(c){ c.classList.toggle("on", c === el); }); apply(); return; }
+  if((el = t.closest("[data-tt]"))){ F.tt = el.dataset.tt; $$("#typoChips .chip").forEach(function(c){ c.classList.toggle("on", c === el); }); apply(); return; }
+  switch((t.closest("button") || {}).id){
+    case "onlyOpen": F.open = !F.open; apply(); break;
+    case "onlyDis": F.dis = !F.dis; apply(); break;
+    case "toggleAll": var open = $$(".card:not([hidden])").some(function(c){ return !c.classList.contains("open"); }); $$(".card").forEach(function(c){ c.classList.toggle("open", open); }); t.closest("button").textContent = open ? "全部折叠" : "全部展开"; break;
+    case "clearBtn": if(confirm("清空所有勾选？（包括文字小错）")){ S.done = {}; S.typo = {}; save(); sync(); apply(); } break;
+    case "exportBtn": exportMd(); break;
+    case "themeBtn": if(S){ S.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; save(); theme(S.theme); } break;
+    case "sideClose": if(innerWidth > 900){ document.body.classList.add("side-off"); S.sideOff = 1; save(); } else document.body.classList.remove("side-on"); break;
+    case "sideOpen": if(innerWidth > 900){ document.body.classList.toggle("side-off"); S.sideOff = document.body.classList.contains("side-off") ? 1 : 0; save(); } else document.body.classList.add("side-on"); break;
+  }
+  if(t.id === "scrim") document.body.classList.remove("side-on");
+});
+document.addEventListener("change", function(e){
+  var t = e.target; if(!S) return;
+  if(t.dataset.done){ S.done[t.dataset.done] = t.checked; save(); sync(); if(F.open) apply(); }
+  else if(t.dataset.typo){ S.typo[t.dataset.typo] = t.checked; save(); sync(); }
+  else if(t.id === "typoAll"){ $$("#sec-typos tbody tr").forEach(function(tr){ if(!tr.hidden) S.typo[tr.id] = t.checked; }); save(); sync(); }
+  else if(t.id === "grpSel"){ F.g = t.value; apply(); }
+});
+document.addEventListener("input", function(e){
+  var t = e.target; if(t.id === "q"){ F.q = t.value; apply(); } else if(t.dataset.note && S){ S.note[t.dataset.note] = t.value; save(); }
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape") closeModal();
+  if(e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && $("#q")){ e.preventDefault(); $("#q").focus(); }
+});
+addEventListener("scroll", spy, {passive: true}); addEventListener("resize", spy);
+
+if(D.summary && (D.issues.length || D.merged.length)) start(false); else importer();
+})();
+</script>
+</body>
+</html>

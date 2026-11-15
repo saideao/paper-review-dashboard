@@ -83,6 +83,8 @@ def main() -> None:
     out.write_text(html, encoding="utf-8")
     n = len(data[main_key])
     kind = "交叉汇总" if cross else "导入的审稿意见" if data["summary"].get("mode") == "import" else "审稿"
+    if data["summary"].get("field") == "humanities":
+        kind += "，人文社科"
     print(f"已写出 {out}（{kind}，{n} 条意见，"
           f"声明 {len(data.get('claims') or [])} 条，文字小错 {len(data.get('typos') or [])} 处）")
 

@@ -125,6 +125,8 @@ body.cross .wrap{max-width:1140px}
 
 /* 统计 */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.stats.three{grid-template-columns:repeat(3,1fr)}   /* 导入、人文社科没有声明—证据那一格 */
+.empty-after{color:var(--ink3)}
 .stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px 16px;min-width:0}
 .stat .k{font-size:12px;color:var(--ink3);letter-spacing:.06em}
 .stat .v{font:600 30px/1.15 var(--serif);margin-top:6px;font-variant-numeric:tabular-nums}
@@ -249,7 +251,7 @@ tr.done td{color:var(--ink3)}tr.done td.q{text-decoration:line-through;text-deco
 #scrim{display:none}
 .only-m{display:none}
 
-@media (max-width:1180px){.stats{grid-template-columns:repeat(2,1fr)}.hide-md{display:none}}
+@media (max-width:1180px){.stats,.stats.three{grid-template-columns:repeat(2,1fr)}.hide-md{display:none}}
 @media (max-width:900px){
   #side{transform:translateX(-100%);box-shadow:0 0 60px rgba(0,0,0,.3)}
   body.side-on #side{transform:none}
@@ -309,7 +311,8 @@ var $ = function(s, r){ return (r || document).querySelector(s); };
 var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 function read(id){ var e = document.getElementById(id); if(!e) return null; try{ return JSON.parse(e.textContent); }catch(x){ return null; } }
 var D = { summary: read("summary") || {}, issues: read("issues") || [], merged: read("merged") || [], claims: read("claims") || [], typos: read("typos") || [] };
-var CROSS, IMPORT, ITEMS, KEY, S;   /* IMPORT：导入已有的审稿意见（summary.mode === "import"），卡片上多"原话"和"核对结果" */
+var CROSS, IMPORT, HUM, ITEMS, KEY, S;   /* HUM：人文社科论文（summary.field === "humanities"），不做声明—证据表 */
+  /* IMPORT：导入已有的审稿意见（summary.mode === "import"），卡片上多"原话"和"核对结果" */
 
 /* ---------- 小工具 ---------- */
 function esc(s){ return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
@@ -372,7 +375,9 @@ function reviewers(){
 }
 
 /* ---------- 分组 ---------- */
-var G_ORDER = ["声明与证据","数字一致性","方法学","实验","相关工作与引用","写作结构","术语与符号","图表","格式与匿名","口味项"];
+var G_ORDER = ["声明与证据","数字一致性","方法学","实验","相关工作与引用","写作结构","术语与符号","图表","格式与匿名",
+               /* 人文社科（summary.field === "humanities"） */
+               "问题意识与创新","学术史与文献综述","核心论点","论证逻辑","概念与理论","材料与引文","研究方法","结构安排","语言表达","注释与格式","口味项"];
 function groups(){
   var by = {}, order = [];
   ITEMS.forEach(function(x){ var g = (CROSS ? x.category : x.group) || "其他"; if(!by[g]){ by[g] = []; order.push(g); } by[g].push(x); });
@@ -391,7 +396,8 @@ function groups(){
 function hero(){
   var s = D.summary, h = '<section id="sec-summary" style="margin-top:0"><div class="hero"><div class="hero-top">';
   h += '<div class="eyebrow">' + (CROSS ? "<span><b>交叉汇总</b></span>" : IMPORT ? "<span><b>导入的审稿意见</b></span>" : "<span><b>审稿清单</b></span>") +
-       (s.venue ? "<span>目标会议 · <b>" + esc(s.venue) + "</b></span>" : "") + (s.date ? "<span>" + (CROSS ? "汇总" : IMPORT ? "导入" : "审稿") + "日期 · <b>" + esc(s.date) + "</b></span>" : "") +
+       (HUM ? "<span><b>人文社科</b></span>" : "") +
+       (s.venue ? "<span>" + (HUM ? "目标期刊" : "目标会议") + " · <b>" + esc(s.venue) + "</b></span>" : "") + (s.date ? "<span>" + (CROSS ? "汇总" : IMPORT ? "导入" : "审稿") + "日期 · <b>" + esc(s.date) + "</b></span>" : "") +
        (CROSS ? "<span>审稿人 · <b>" + reviewers().join("、") + "</b></span>" : "") +
        (IMPORT && (s.sources || []).length ? "<span>来源 · <b>" + s.sources.map(esc).join("、") + "</b></span>" : "") + "</div>";
   h += '<div class="paper-title">' + esc(s.title || "（没写题目）") + "</div>";
@@ -407,7 +413,7 @@ function hero(){
       var n = Math.max(0, Math.min(5, +x.score || 0)), p = "";
       for(var i = 1; i <= 5; i++){ var w = Math.max(0, Math.min(1, n - i + 1)) * 100; p += '<i style="background:linear-gradient(90deg,var(--ink) ' + w + '%,var(--line) ' + w + '%)"></i>'; }
       return '<div class="score"><span class="d">' + esc(x.dim) + '</span><span class="pips">' + p + "<b>" + esc(x.score) + '</b></span><span class="r">' + rich(x.reason) + "</span></div>";
-    }).join("") + (hasScores ? "</div>" : "") + '<div><p class="h-k">' + (IMPORT ? "最该先处理的几件事" : "投稿前必须闭环的几件事") + "</p>" + must(s.must_fix) + "</div></div>";
+    }).join("") + (hasScores ? "</div>" : "") + '<div><p class="h-k">' + (IMPORT ? "最该先处理的几件事" : HUM ? "投稿前必须解决的几件事" : "投稿前必须闭环的几件事") + "</p>" + must(s.must_fix) + "</div></div>";
   }
   return h + "</div>" + stats() + "</section>";
 }
@@ -429,10 +435,11 @@ function stats(){
     var vc = count(D.claims, function(c){ return c.verdict || "?"; }), order = ["撑得住","说过头","对不上","无证据"];
     Object.keys(vc).forEach(function(k){ if(order.indexOf(k) < 0) order.push(k); });
     var cs = order.filter(function(k){ return vc[k]; }).map(function(k){ return [vc[k], k, TONE[vtone(k)]]; });
-    if(!IMPORT || D.claims.length) h += '<div class="stat"><div class="k">声明—证据</div><div class="v">' + D.claims.length + "<small>条声明</small></div>" + stack(cs) + sub(cs) + "</div>";
+    if((!IMPORT && !HUM) || D.claims.length) h +='<div class="stat"><div class="k">声明—证据</div><div class="v">' + D.claims.length + "<small>条声明</small></div>" + stack(cs) + sub(cs) + "</div>";
     var tc = count(D.typos, function(t){ return t.type || "其他"; });
     h += '<div class="stat"><div class="k">文字小错</div><div class="v">' + D.typos.length + '<small>处</small></div><div class="sub">' + Object.keys(tc).map(function(k){ return "<span>" + esc(k) + " " + tc[k] + "</span>"; }).join("") + "</div></div>";
   }
+  if((h.match(/class="stat"/g) || []).length === 3) h = h.replace('class="stats"', 'class="stats three"');
   return h + "</div>";
 }
 function passes(){
@@ -448,7 +455,7 @@ function fixes(x){
   return a.map(function(f, i){
     var d = diff(f.before || "", f.after || "");
     return '<div class="fix"><div class="w">' + (a.length > 1 ? '<span class="tag line">第 ' + (i + 1) + " 处</span>" : "") + "<span>" + rich(f.where || "改动位置") + '</span></div><div class="ba"><div><span class="lb">改前</span>' + d[0] +
-      '<button class="copy" data-copy="' + esc(f.before || "") + '">复制</button></div><div><span class="lb">改后</span>' + d[1] + '<button class="copy" data-copy="' + esc(f.after || "") + '">复制</button></div></div></div>';
+      '<button class="copy" data-copy="' + esc(f.before || "") + '">复制</button></div><div><span class="lb">改后</span>' + (f.after ? d[1] : '<span class="empty-after">（删去这句）</span>') + '<button class="copy" data-copy="' + esc(f.after || "") + '">复制</button></div></div></div>';
   }).join("");
 }
 function card(x, tone){
@@ -464,7 +471,7 @@ function card(x, tone){
     b += field("怎么判断谁对", x.how_to_decide ? '<div class="call acc">' + rich(x.how_to_decide) + "</div>" : "");
   } else {
     b += field("意见原话", x.said ? "<blockquote>" + esc(x.said) + "</blockquote>" : "");
-    b += field("审稿人会怎么攻击", rich(x.attack), "attack");
+    b += field(HUM ? "审稿人会怎么说" : "审稿人会怎么攻击", rich(x.attack), "attack");
     b += field("原文位置", '<div class="loc">' + rich(x.location) + pg(x.page) + "</div>" + (x.quote ? "<blockquote>" + esc(x.quote) + "</blockquote>" : ""));
     b += field(x.stance ? "回到论文核对" : "为什么是问题", rich(x.why));
   }
@@ -690,7 +697,7 @@ function importer(){
 
 /* ---------- 启动 ---------- */
 function start(imported){
-  CROSS = D.merged.length > 0; ITEMS = CROSS ? D.merged : D.issues; IMPORT = !CROSS && D.summary.mode === "import";
+  CROSS = D.merged.length > 0; ITEMS = CROSS ? D.merged : D.issues; IMPORT = !CROSS && D.summary.mode === "import"; HUM = D.summary.field === "humanities";
   document.body.classList.toggle("cross", CROSS);
   IDS = {}; ITEMS.forEach(function(x){ IDS[x.id] = 1; }); D.claims.forEach(function(c){ IDS[c.id] = 1; }); D.typos.forEach(function(t){ IDS[t.id] = 1; });
   KEY = "shenshi:" + (CROSS ? "x:" : "r:") + hash((D.summary.title || "") + "|" + ITEMS.length);
